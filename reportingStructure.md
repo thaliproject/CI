@@ -87,6 +87,15 @@ them from successfully communicating to the Test Server. It is up to the Test Se
 far as the CI system is concerned if it was able to deploy to a device then the device is 'successful' and must be
 included in the 'successfully provisioned' section.
 
+If the CI system is unable to successfully deploy to any devices for a particular platform then the CI system MUST
+immediately abort the test for that platform (e.g. iOS could fail but Android could still run) and report this situation in the
+platform's results as:
+
+"Job X.Y for platform Z has failed due to failing to deploy to any devices on that platform"
+
+The rest of the job output should be the same but with all devices listed under 'not successfully provisioned'.
+
+
 # Communication between the CI system and the Test Server
 When the CI system starts the Test Server (aka the Coordination Server) it will pass in on the command line the
 number of devices that the CI system believes should be available. This number is calculated before attempting to
