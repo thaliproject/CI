@@ -111,6 +111,10 @@ It would probably be useful if the CI system could report both in GitHub and to 
 deploying to whatever devices it can. This will help the Test Server have a more accurate timing for waiting for
 devices to show up and will give the developer a sense for how the tests are going.
 
+## Enabling the Test Server to abort tests
+We have scenarios where the Test Server knows that a test run is hopelessly broken and should be aborted. It would be
+useful if there was a mechanism by which the Test Server could prematurely end a test.
+
 ## Reporting to the Test Server the complete list of device names along with their deployment status
 It might eventually be useful for the CI system to tell the Test Server what devices there are (by name) as well as
 what their deployment status is. That could potentially help with managing tests. But it's not important enough to
