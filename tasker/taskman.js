@@ -176,7 +176,8 @@ var testTask = function () {
         sync("cd " + process.cwd() + "/tasker;ssh pi@192.168.1.150 'bash -s' < pkill.sh");
       }
       android.leave();
-      iosChild.kill();
+      if (iosChild)
+        iosChild.kill();
     }
     return;
   }
