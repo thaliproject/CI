@@ -72,8 +72,10 @@ var updateScripts = function (job, cmd) {
 
   var serverScript = "";
   if (job.config.serverScript && job.config.serverScript.length) {
-    serverScript = "mkdir -p builds/server_" + job.prId + "/;ERROR_ABORT;\n";
-    serverScript += "scp -r thali@192.168.1.20:~/Github/testBuild/" + job.config.serverScript + " builds/server_" + job.prId + "/ ;ERROR_ABORT"
+    serverScript = "mkdir -p builds/server_" + job.uqID + "/"+job.config.serverScript+"/;ERROR_ABORT;\n";
+
+    var target_loc = path.join("builds/server_" + job.uqID + "/" + job.config.serverScript, "../");
+    serverScript += "scp -r thali@192.168.1.20:~/Github/testBuild/" + job.config.serverScript + " " + target_loc + " ;ERROR_ABORT"
   }
 
   for (var i = 0; i < arrFrom.length; i++) {
@@ -92,7 +94,7 @@ var updateScripts = function (job, cmd) {
     data = data.replace("{{BUILD_PATH}}", scr).replace("{{BUILD_PATH}}", scr);
 
     data = data.replace("{{BUILD_INDEX}}", cmd.index).replace("{{BUILD_INDEX}}", cmd.index);
-    data = data.replace("{{BUILD_PR_ID}}", job.prId).replace("{{BUILD_PR_ID}}", job.prId);
+    data = data.replace("{{BUILD_PR_ID}}", job.uqID).replace("{{BUILD_PR_ID}}", job.uqID);
 
 
     data = data.replace("{{CENTRALSCRIPTCOPY}}", serverScript);
@@ -104,7 +106,7 @@ var updateScripts = function (job, cmd) {
 
 var jobErrorReportAndRemove = function (job, err, stdout, stderr) {
   var msg = err + "\n\n" + stdout + "\n\n" + stderr;
-  logme("Error: ", msg, "(JOB ID:" + job.prId + ")", "red");
+  logme("Error: ", msg, "(JOB ID:" + job.uqID + ")", "red");
 
   if (msg.length > 12 * 1024) {
     var left = msg.substr(0, 6 * 1024);
@@ -117,11 +119,11 @@ var jobErrorReportAndRemove = function (job, err, stdout, stderr) {
       user: job.user,
       repo: job.repo,
       number: job.prNumber,
-      body: "Test Server build has failed. See error details below; \n```" + msg + "\n```"
+      body: "Test Server build has failed. ("+job.uqID+") See error details below; \n```" + msg + "\n```"
     };
     git.createComment(opts);
   } else {
-    git.createIssue(job.user, job.repo, "Test Server build has failed", "Error Message : \n\n" + msg);
+    git.createIssue(job.user, job.repo, "Test Server build has failed (" + job.uqID + ")", "Error Message : \n\n" + msg);
   }
   db.removeJob(job);
 
@@ -159,25 +161,25 @@ var runBuild = function (cmds, job, index, cb) {
       jobErrorReportAndRemove(job, err, stdout, stderr);
       cb(err);
     } else {
-      gitLog += stdout + "\n" + stderr + "\n";
+      gitLog += "\n```\n" + stdout + "\n" + stderr + "\n```\n";
       index++;
       if (index < cmds.length) {
         runBuild(cmds, job, index, cb);
       } else {
         if (job.prNumber) {
-          git.createGist("Test " + job.prId + " Build Logs", gitLog, function (err, res) {
+          git.commitFile(job, "build", "Test " + job.prId + " Build Logs", gitLog, function (err, res, url) {
             gitLog = "";
             if (err) {
               var opts = {
                 user: job.user,
                 repo: job.repo,
                 number: job.prNumber,
-                body: "Build is completed without an error but couldn't create a gist."
+                body: "Build is completed without an error but couldn't commit the log file. ("+job.commitIndex+")\n\n"
+                + res
               };
               git.createComment(opts);
             } else {
-              var url = res.html_url;
-              tester.logIssue(job, "Test " + job.prId + " build process is completed", "See " + url + " for the logs");
+              tester.logIssue(job, "Test " + job.prId + " build process is completed ("+job.commitIndex+")", "See " + url + " for the logs");
             }
           });
         }
@@ -250,7 +252,7 @@ var buildJob = function (job) {
       to: ["copy_server.sh"]
     });
 
-    logme("Running builds for job:", job.prId);
+    logme("Running builds for job:", job.uqID);
     runBuild(cmds, job, 0, function (err) {
       if (err || cancelJobId == job.prId)
         return;
@@ -260,7 +262,7 @@ var buildJob = function (job) {
       cancelJobId = 0;
 
       // move builds
-      var prPath = "builds/" + job.prId;
+      var prPath = "builds/" + job.uqID;
       exec("cd " + __dirname + "; rm -rf " + prPath + "; mkdir -p " + prPath + "; mv build_ios/ " + prPath + "; mv build_android/ " + prPath, eopts, function (err, stdout, stderr) {
         if (err) {
           logme("something happened and couldn't move the builds?", err, stdout, stderr, "red");

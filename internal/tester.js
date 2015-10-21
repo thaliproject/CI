@@ -183,7 +183,7 @@ var logIssue = function (job, title, body) {
 exports.logIssue = logIssue;
 
 var grabLogs = function (job, target) {
-  var loc = path.join(__dirname, "../tasker/results/" + job.prId + "/");
+  var loc = path.join(__dirname, "../tasker/results/" + job.uqID + "/");
 
   var log = "";
   if (target == "android") {
@@ -237,8 +237,8 @@ var grabLogs = function (job, target) {
 exports.report = function (job, target, err, result) {
   console.log("Report", target);
 
-  if (!logs[job.prId]) {
-    logs[job.prId] = {
+  if (!logs[job.uqID]) {
+    logs[job.uqID] = {
       job: job,
       failed: "",
       success: ""
@@ -249,10 +249,10 @@ exports.report = function (job, target, err, result) {
   if (err === null || typeof err === "undefined")
     err = false;
 
-  if (logs[job.prId].error) {
-    logs[job.prId].error = logs[job.prId].error + "\n\n" + target + " : " + err;
+  if (logs[job.uqID].error) {
+    logs[job.uqID].error = logs[job.uqID].error + "\n\n" + target + " : " + err;
   } else {
-    logs[job.prId].error = "\n\n" + target + " : " + err;
+    logs[job.uqID].error = "\n\n" + target + " : " + err;
   }
 
   obj[target] = {
@@ -267,16 +267,16 @@ exports.report = function (job, target, err, result) {
   }
 
   if (result) {
-    logs[job.prId].success += log + "\n";
+    logs[job.uqID].success += log + "\n";
   } else {
-    logs[job.prId].failed += log + "\n";
+    logs[job.uqID].failed += log + "\n";
   }
 };
 
-exports.commitLog = function (prId) {
-  var log = logs[prId];
-  logs[prId] = null;
-  delete logs[prId];
+exports.commitLog = function (uqID) {
+  var log = logs[uqID];
+  logs[uqID] = null;
+  delete logs[uqID];
 
   var failed = log.failed ? true : false;
   if (!failed) log.failed = "";
@@ -285,15 +285,14 @@ exports.commitLog = function (prId) {
   str += log.failed;
   str += "\n\n" + log.success;
 
-  git.createGist("Test " + prId + " Logs", str, function (err, res) {
+  git.commitFile(log.job, "test_log", "Test " + uqID + " Logs", str, function (err, res, url) {
     if (err) {
-      logme("Failed to create a fail gist.", err, "red");
+      logme("Failed to create a fail gist.", err + "\n" + res, "red");
     } else {
-      var url = res.html_url;
       if (failed)
-        logIssue(log.job, "Test " + prId + " has failed", "See " + url + " for the fail logs");
+        logIssue(log.job, "Test " + uqID + "("+log.job.commitIndex+") has failed", "See " + url + " for the fail logs");
       else {
-        logIssue(log.job, "Test " + prId + " has successfully finished without an error", "See " + url + " for the logs");
+        logIssue(log.job, "Test " + uqID + "("+log.job.commitIndex+") has successfully finished without an error", "See " + url + " for the logs");
       }
 
     }

@@ -10,13 +10,21 @@ exports.OnRequest = function (req, res) {
   }
 
   if (json.pull_request) { // pull request
-
     var prNumber = json.number;
     var pr = json.pull_request;
     var prId = pr.id; // this needs to be unique!! see if we tested this PR before
     var user = pr.user.login; // username
     var title = pr.title; // title of commit / PR
     var branch, repo_name = "";
+    var commits = 9999999;
+
+    if (pr.statuses_url) {
+      var ln = pr.statuses_url.indexOf('statuses/');
+      if (ln > 0) {
+        commits = pr.statuses_url.substr(ln + 9, 7);
+      }
+    }
+
     if (pr && pr.state === "open") { // PR state
       var head = pr.head;
       branch = head.ref;
@@ -30,8 +38,8 @@ exports.OnRequest = function (req, res) {
         logme("BAD REQUEST from repo", repo_name, "red");
       }
     } else {
-      logme("PR >", prId, prNumber, user, title, repo_name, branch, "yellow");
-      git.newTest(prId, prNumber, user, title, repo_name, branch);
+      logme("PR >", prId, commits, prNumber, user, title, repo_name, branch, "yellow");
+      git.newTest(prId, prNumber, user, title, repo_name, branch, commits);
     }
   } else if (json.hook && (typeof json.hook_id !== "undefined")) { // new web hook
     var hook_id = json.hook_id;
@@ -59,7 +67,10 @@ exports.OnRequest = function (req, res) {
         db.updateHook(obj);
         logme("Received webhook for a repository that is already in database", repo_name, "yellow");
       }
-      git.newTest(hook_id, null, user, json.repository.description, repo_name, branch);
+      git.newTest(hook_id, null, user, json.repository.description,
+        repo_name, branch, /*hook commit index is 99999, meaning
+                             no commit will have the same index until
+                             the hook registered into db*/ 99999);
     }
   } else {
     logme("Unkown Request Received", "red");

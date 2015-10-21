@@ -29,6 +29,10 @@ exports.getGithubUser = function (cb) {
     var arr = config.find({name: "GithubUser"})
     server.loadDatabase({}, function () {
       hook = server.getCollection('hooks');
+      if (!hook) {
+        console.error("server.json is empty!");
+        process.exit(1);
+      }
       test = server.getCollection('test');
       cb(arr.length ? arr[0] : null);
     })
@@ -88,7 +92,7 @@ exports.updateJob = function (job) {
 
   var q = obj.jobsQueue;
   for (var i = 0; i < q.length; i++) {
-    if (q[i].prId == job.prId) {
+    if (q[i].uqID == job.uqID) {
       q[i] = job;
       break;
     }
@@ -117,7 +121,7 @@ exports.removeJob = function (job) {
   var q = obj.jobsQueue;
   var arr = [];
   for (var i = 0; i < q.length; i++) {
-    if (q[i].prId != job.prId) {
+    if (q[i].uqID != job.uqID) {
       arr.push(q[i]);
     }
   }
@@ -178,74 +182,32 @@ exports.addJob = function (user, repo, branch, opts, json) {
     obj = test.findObject({pt_zero: 0});
   }
 
-  var prId = opts.prId; // hook or pr id
-  var job;
-  var index = find(obj.jobsQueue, ["prId"], [prId]);
+  var job = {
+    uqID: opts.prId + opts.commits,
+    user: user, // thaliproject
+    repo: repo, // postcardapp
+    branch: branch, // master
+    config: json, // test_mobile.json
+    prId: opts.prId, // prId or hookId
+    prNumber: opts.prNumber, // null or prNumber
+    sender: opts.sender, // sender user
+    title: opts.title, // repo or pr title
+    target: json.target, // all, ios, android
+    priority: json.priority, // normal, asap, now
+    compiled: false, // whether osx VM compiled the application file or not
+    commitIndex: opts.commits,
+    links: [] // apk etc. links for compiled apps
+  };
 
-  // check if the task is already on the nodes
-  // if it is, do not update the current task
-  var isUpdate = index != -1;
-  if (isUpdate && index == 0) {
-    if (virtual.IsActive(json.prId)) {
-      virtual.cancelIfActive();
-    } else {
-      isUpdate = false;
-    }
-  } else if (isUpdate) {
-    virtual.cancelIfActive(json.prId);
-  }
-
-  // update the existing job
-  if (isUpdate) {
-    job = obj.jobsQueue[index];
-
-    // if priority is not the same relocate the job object
-    if (job.priority != json.priority) {
-      // remove job
-      obj.jobsQueue = remove(obj.jobsQueue, index);
-      if (json.priority == "now" || json.priority == "asap") {
-        obj.jobsQueue.unshift(job);
-      } else {
-        obj.jobsQueue.push(job);
-      }
-    }
-
-    job.priority = json.priority;
-    job.config = json;
-    job.target = json.target;
-    job.compiled = false;
-    job.links = [];
-
-    // save to file system
-    logme("Test Updated", job.prId, "green");
+  // locate based on priority
+  if (json.priority == "now" || json.priority == "asap") {
+    obj.jobsQueue.unshift(job);
   } else {
-
-    // create new job
-    job = {
-      user: user, // thaliproject
-      repo: repo, // postcardapp
-      branch: branch, // master
-      config: json, // test_mobile.json
-      prId: opts.prId, // prId or hookId
-      prNumber: opts.prNumber, // null or prNumber
-      sender: opts.sender, // sender user
-      title: opts.title, // repo or pr title
-      target: json.target, // all, ios, android
-      priority: json.priority, // normal, asap, now
-      compiled: false, // whether osx VM compiled the application file or not
-      links: [] // apk etc. links for compiled apps
-    };
-
-    // locate based on priority
-    // TODO (now) needs to cancel existing job
-    if (json.priority == "now" || json.priority == "asap") {
-      obj.jobsQueue.unshift(job);
-    } else {
-      obj.jobsQueue.push(job);
-    }
-
-    logme("New Test", job.user, job.repo, job.prId, "green");
+    obj.jobsQueue.push(job);
   }
+
+  logme("New Test", job.user, job.repo, job.prId, "green");
+
   // update collection
   test.update(obj);
 

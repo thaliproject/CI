@@ -63,7 +63,7 @@ var getAndroidDevices = function () {
 };
 
 var arrDevices = getAndroidDevices();
-var builds = path.join(__dirname, "../builder/builds/" + job.prId + "/build_android");
+var builds = path.join(__dirname, "../builder/builds/" + job.uqID + "/build_android");
 var appCounter = 0;
 var testFailed = false;
 
@@ -248,7 +248,7 @@ for (var i = 0; i < arrDevices.length; i++) {
 
 // deploy apps
 for (var i = 0; i < arrDevices.length; i++) {
-  if (!deployAndroid(builds + "/android_" + nodeId + "_" + job.prId + ".apk", arrDevices[i].deviceId)) {
+  if (!deployAndroid(builds + "/android_" + nodeId + "_" + job.uqID + ".apk", arrDevices[i].deviceId)) {
     logme("\n\nTest on this node has failed but the reason wasn't the test application itself.\n",
       "Cancelling the test result on this node.\n");
     process.exit(0);

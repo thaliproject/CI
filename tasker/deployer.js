@@ -19,7 +19,7 @@ if (process.argv.length < 3) {
 
 var job = JSON.parse(new Buffer(process.argv[2], "base64") + "");
 
-var apk_name = "android_0_" + job.prId + ".apk";
+var apk_name = "android_0_" + job.uqID + ".apk";
 
 function CLEANUP() {
   //cleanup target
@@ -39,20 +39,20 @@ function COPY_LOGS() {
   // give 45 sec max to copy logs
   jxcore.tasks.addTask(function () {
     setTimeout(function () {
-      console.error("COPY_LOGS timeout reached")
+      console.error("COPY_LOGS timeout reached");
       process.exit(1);
     }, 45000);
   });
 
   for (var i = 0; i < job.nodes.length; i++) {
-    sync("mkdir -p " + __dirname + "/results/" + job.prId + "/" + job.nodes[i].name + "/");
-    sync("scp pi@" + job.nodes[i].ip + ":~/*.json " + __dirname + "/results/" + job.prId + "/" + job.nodes[i].name + "/");
+    sync("mkdir -p " + __dirname + "/results/" + job.uqID + "/" + job.nodes[i].name + "/");
+    sync("scp pi@" + job.nodes[i].ip + ":~/*.json " + __dirname + "/results/" + job.uqID + "/" + job.nodes[i].name + "/");
   }
 
 }
 
 var reset = fs.readFileSync(__dirname + "/reset_.sh") + "";
-reset = reset.replace("{{PR_ID}}", job.prId);
+reset = reset.replace("{{PR_ID}}", job.uqID);
 fs.writeFileSync(__dirname + "/reset.sh", reset)
 
 //cleanup target
@@ -73,10 +73,11 @@ for (var i = 0; i < retry.length; i++) {
   }
 }
 
-var apk_path = "../builder/builds/" + job.prId + "/build_android/" + apk_name;
+var apk_path = "../builder/builds/" + job.uqID + "/build_android/" + apk_name;
 //copy apk
 for (var i = 0; i < job.nodes.length; i++) {
-  var res = sync("cd " + __dirname + ";scp " + apk_path + " pi@" + job.nodes[i].ip + ":~/test/builder/builds/" + job.prId + "/build_android/" + apk_name);
+  var res = sync("cd " + __dirname + ";scp " + apk_path + " pi@" + job.nodes[i].ip
+    + ":~/test/builder/builds/" + job.uqID + "/build_android/" + apk_name);
   if (res.exitCode != 0) {
     console.error("Error while transferring APK:", res.out);
     process.exit(1);

@@ -8,6 +8,7 @@ Download the latest JXcore from [jxcore.com/downloads](http://jxcore.com/downloa
 git clone https://github.com/thaliproject/ThaliCI
 cd ThaliCI
 jx install
+git clone https://github.com/ThaliTester/TestResults
 ```
 
 - Define the worker `nodes` under `tasker/nodes.json` and `tasker/clean_nodes.sh`

@@ -5,3 +5,9 @@ node_modules/
 config.json
 
 server.json
+
+TestResults/
+
+builder/builds/
+
+tasker/results/

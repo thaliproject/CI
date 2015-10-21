@@ -49,7 +49,7 @@ var runTask = function (job) {
     if (taskCounter <= 0 || itemTotal == 0) {
       taskCounter = 0;
       if (!activeJob) return;
-      logme("Test " + activeJob.prId + " has finished", "green");
+      logme("Test " + activeJob.uqID + " has finished", "green");
       taskerReset = true;
       // rebooting nodes give some time
 
@@ -66,15 +66,15 @@ var runTask = function (job) {
         taskerReset = false;
         db.removeJob(activeJob);
 
-        sync("cd " + __dirname + ";rm -rf results/" + activeJob.prId + "/; rm -rf ../builder/builds/" + activeJob.prId);
+        sync("cd " + __dirname + ";rm -rf results/" + activeJob.uqID + "/; rm -rf ../builder/builds/" + activeJob.uqID);
 
-        tester.commitLog(activeJob.prId);
+        tester.commitLog(activeJob.uqID);
         activeJob = null;
       }, 5000);
     }
   };
 
-  var res = sync("cd " + __dirname + ";rm -rf results/" + job.prId + "/;mkdir -p results/" + job.prId);
+  var res = sync("cd " + __dirname + ";rm -rf results/" + job.uqID + "/;mkdir -p results/" + job.uqID);
   if (res.exitCode) {
     logme("Error while creating the logs folder: ", err, stdout, stderr, "red");
     process.exit(1);
@@ -86,17 +86,23 @@ var runTask = function (job) {
 
   if (job.config.serverScript && job.config.serverScript.length) {
     delay = 4000;
-    var p = path.join(process.cwd(), "builder/builds/server_" + job.prId);
+    var p = path.join(process.cwd(), "builder/builds/server_" + job.uqID);
 
-    if (!fs.existsSync(p + "/" + job.config.serverScript + "/index.js")) {
-      tester.report(job, 'server', "Integration server application folder doesn't have an index.js file.\n\nTerminating the test.", false);
+    if (job.config.serverScript[job.config.serverScript.length-1] != '/')
+      job.config.serverScript += "/";
+
+    var ijs_location = path.join(p , job.config.serverScript, "index.js");
+    if (!fs.existsSync(ijs_location)) {
+      tester.report(job, 'server', "Integration server application folder doesn't have an index.js file.\n\n"
+        + "Location:`" + ijs_location + "`"
+        + "\n\nTerminating the test.", false);
       cb();
       return;
     }
 
     var rs_path = process.cwd() + "/tasker/runServerRemote__.sh";
     var rs_final = process.cwd() + "/tasker/runServerRemote.sh";
-    var sloc = "server_" + job.prId + "/" + job.config.serverScript.replace('/', '') + "/";
+    var sloc = path.join("server_" + job.uqID + "/", job.config.serverScript);
 
     p += " pi@192.168.1.150:~/Test/" + sloc;
 

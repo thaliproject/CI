@@ -164,7 +164,7 @@ var installApp = function (job, cb) {
   llChildren = [];
   jobCB = cb;
 
-  var loc = path.join(builds, job.prId + "/build_ios/", job.config.binary_path.ios);
+  var loc = path.join(builds, job.uqID + "/build_ios/", job.config.binary_path.ios);
 
   for (var i = 0; i < arrDevices.length; i++) {
     var ll = new grabLLDB(i, loc, arrDevices[i].deviceId, function (err) {
@@ -218,7 +218,7 @@ exports.test = function (job, cb) {
   sync("killall ios-deploy;killall lldb");
   test_(job, function (arr, isFailed) {
     activeJob = null;
-    var res = sync("cd " + __dirname + ";mkdir -p results/" + job.prId + "/ios/");
+    var res = sync("cd " + __dirname + ";mkdir -p results/" + job.uqID + "/ios/");
     if (res.exitCode) {
       isFailed = res.out;
     } else {
@@ -251,7 +251,7 @@ exports.test = function (job, cb) {
 
 
       try {
-        fs.writeFileSync(__dirname + "/results/" + job.prId + "/ios/result.json", str);
+        fs.writeFileSync(__dirname + "/results/" + job.uqID + "/ios/result.json", str);
       } catch (e) {
         isFailed = e;
       }

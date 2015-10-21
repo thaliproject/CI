@@ -5,7 +5,7 @@
 ### Make sure multiple calls to this script file compiles the application file
 
 NORMAL_COLOR='\033[0m'
-RED_COLOR='\033[0;31m'
+RED_COLOR=''
 GREEN_COLOR='\033[0;32m'
 GRAY_COLOR='\033[0;37m'
 
@@ -19,7 +19,7 @@ LOG() {
 ERROR_ABORT() {
   if [[ $? != 0 ]]
   then
-    LOG $RED_COLOR "compilation aborted\n"
+    LOG $RED_COLOR "run_.sh aborted\n"
     exit -1
   fi
 }

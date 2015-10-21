@@ -2,6 +2,7 @@ var GitHubApi = require("github");
 var path = require('path');
 var tester = require('./../internal/tester');
 var virtual = require('./../builder/virtual')
+var reporting = require('../reporting/report');
 
 var github = new GitHubApi({
   // required
@@ -54,6 +55,20 @@ var createGist = function (title, body, cb) {
     });
 };
 exports.createGist = createGist;
+
+var commitFile = function (job, name, title, body, cb) {
+  logme("Creating Github Gist", "red");
+
+  var bname = job.uqID + "_" + job.title.replace(/[ $\?>.*,;:@\"|\'\+<&]/g, '_')
+    + "_" + job.sender;
+
+  var txt = "#### " + title + "\n\n" + body;
+
+  reporting.logIntoBranch(bname, name + ".md", txt, function(err, res){
+    cb(err, res, "https://github.com/ThaliTester/TestResults/tree/" + bname + "/");
+  });
+};
+exports.commitFile = commitFile;
 
 // opts = {user, repo, number}
 var getFiles = function (opts, cb) {
@@ -146,7 +161,7 @@ var addBranchToQueue = function (user, repo, branch, opts) {
                 user: user,
                 repo: repo,
                 number: opts.prNumber,
-                body: upd_message + " is added to the queue for testing as " + index + ". task"
+                body: upd_message + " is added to the queue for testing as " + index + ". task. (" + opts.commits + ")"
               };
 
               createComment(opt, function () {
@@ -159,7 +174,8 @@ var addBranchToQueue = function (user, repo, branch, opts) {
           }
 
         } catch (e) {
-          logme("Error at addBranchQueue", e, "red");
+          Error.captureStackTrace(e);
+          logme("Error at addBranchQueue", e, e.stack, "red");
           err = e;
         }
       }
@@ -176,7 +192,7 @@ exports.addBranchToQueue = addBranchToQueue;
 
 // pdId -> can be hookId or prId
 // if prNumber == null, prId = hookId
-var newTest = function (prId, prNumber, user, title, repo_name, branch) {
+var newTest = function (prId, prNumber, user, title, repo_name, branch, commits) {
   var opts = {
     user: repo_name.split('/')[0],
     repo: repo_name.split('/')[1],
@@ -184,7 +200,10 @@ var newTest = function (prId, prNumber, user, title, repo_name, branch) {
   };
 
   if (!prNumber) {// test hook
-    addBranchToQueue(opts.user, opts.repo, branch, {prId: prId, prNumber: null, sender: user, title: title});
+    addBranchToQueue(opts.user, opts.repo, branch, {
+      commits: commits,
+      prId: prId, prNumber: null,
+      sender: user, title: title});
     return;
   }
 
@@ -198,7 +217,10 @@ var newTest = function (prId, prNumber, user, title, repo_name, branch) {
         var ext = path.extname(res[i].filename).toLowerCase();
 
         if (ext && ext != '.md' && ext != '.txt') {
-          addBranchToQueue(opts.user, opts.repo, branch, {prId: prId, prNumber: prNumber, sender: user, title: title});
+          addBranchToQueue(opts.user, opts.repo, branch, {
+            commits: commits,
+            prId: prId, prNumber: prNumber,
+            sender: user, title: title});
           return;
         }
       }
