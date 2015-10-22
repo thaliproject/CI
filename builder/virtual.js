@@ -175,7 +175,7 @@ var runBuild = function (cmds, job, index, cb) {
                 repo: job.repo,
                 number: job.prNumber,
                 body: "Build is completed without an error but couldn't commit the log file. ("+job.commitIndex+")\n\n"
-                + res
+                + res + "\n\n" + err
               };
               git.createComment(opts);
             } else {
