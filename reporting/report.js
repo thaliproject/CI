@@ -11,7 +11,7 @@ var eopts = {
   killSignal: 'SIGTERM'
 };
 
-var createBranch = function(branch_name, cb) {
+var createBranch = function (branch_name, cb) {
   exec("cd " + process.cwd() + "/reporting;chmod +x ./push_logs.sh;./push_logs.sh " + branch_name,
     eopts, function (err, stdout, stderr) {
       cb(err, stdout + "\n" + stderr);
@@ -21,7 +21,7 @@ var createBranch = function(branch_name, cb) {
 
 // this needs to be syched!
 // why ? we don't want any other test worker write in between
-exports.logIntoBranch = function(branch_name, filename, log, cb) {
+exports.logIntoBranch = function (branch_name, filename, log, cb) {
   createBranch(branch_name, function (err, res) {
     if (err) {
       cb(err, res);
@@ -36,12 +36,14 @@ exports.logIntoBranch = function(branch_name, filename, log, cb) {
 
     fs.writeFileSync(process.cwd() + '/TestResults/' + filename, log);
 
-    var res = sync("cd " + process.cwd() + "/reporting;chmod +x ./commit_logs.sh;./commit_logs.sh " + branch_name);
-    if (res.exitCode) {
-      cb("exit code:" + res.exitCode, res.out);
-      return;
-    }
-
-    cb(null);
+    exec("cd " + process.cwd()
+      + "/reporting;chmod +x ./commit_logs.sh;./commit_logs.sh " + branch_name, eopts,
+      function (err, stdout, stderr) {
+        if (err) {
+          cb(err, stdout + "\n" + stderr);
+        } else {
+          cb(null);
+        }
+      });
   });
 };
