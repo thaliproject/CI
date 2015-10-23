@@ -38,6 +38,8 @@ exports.OnRequest = function (req, res) {
         logme("BAD REQUEST from repo", repo_name, "red");
       }
     } else {
+      if (db.hasJob(prId, commits)) return;
+
       logme("PR >", prId, commits, prNumber, user, title, repo_name, branch, "yellow");
       git.newTest(prId, prNumber, user, title, repo_name, branch, commits);
     }

@@ -175,6 +175,28 @@ exports.getJob = function (isBuilder) {
   return {noJob: true};
 };
 
+exports.hasJob = function(prId, commitIndex) {
+  // grab job list
+  var obj = test.findObject({pt_zero: 0});
+  if (!obj) {
+    return false;
+  }
+
+  if (!obj.jobsQueue.length) {
+    return false;
+  }
+
+  var uid = prId + commitIndex;
+  var q = obj.jobsQueue;
+  for (var i = 0; i < q.length; i++) {
+    if (q[i].uqID == uid) {
+      return true;
+    }
+  }
+
+  return false;
+};
+
 exports.addJob = function (user, repo, branch, opts, json) {
   var obj = test.findObject({pt_zero: 0});
   if (!obj) {
