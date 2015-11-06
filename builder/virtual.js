@@ -8,7 +8,7 @@ var tester = require('../internal/tester');
 
 var eopts = {
   encoding: 'utf8',
-  timeout: 1200000, // 20mins
+  timeout: 1800000, // 30 min.
   maxBuffer: 1e9,
   killSignal: 'SIGTERM'
 };
@@ -157,35 +157,52 @@ var runBuild = function (cmds, job, index, cb) {
       }
     }
 
-    if (err) {
-      jobErrorReportAndRemove(job, err, stdout, stderr);
-      cb(err);
-    } else {
+    //if (err) {
+   //   jobErrorReportAndRemove(job, err, stdout, stderr);
+    //  cb(err);
+    //} else {
       gitLog += "\n```\n" + stdout + "\n" + stderr + "\n```\n";
       index++;
-      if (index < cmds.length) {
+      if (!err && index < cmds.length) {
         runBuild(cmds, job, index, cb);
       } else {
+        var err_ = err;
+        var msg = "Success";
+        if (err)  {
+          gitLog += "\n" + err;
+          db.removeJob(job);
+
+          stopVM(function () {
+            builderBusy = false;
+            builderReset = false;
+            activeJobId = 0;
+          });
+
+          msg = "Fail";
+        }
+
         if (job.prNumber) {
-          git.commitFile(job, "build", "Test " + job.prId + " Build Logs", gitLog, function (err, res, url) {
+          git.commitFile(job, "build", "Test ("+msg+") " + job.prId + " Build Logs", gitLog, function (err, res, url) {
             gitLog = "";
             if (err) {
               var opts = {
                 user: job.user,
                 repo: job.repo,
                 number: job.prNumber,
-                body: "Build is completed without an error but couldn't commit the log file. ("+job.commitIndex+")\n\n"
-                + res + "\n\n" + err
+                body: "Build is completed ("+msg+") but couldn't commit the log file. (" + job.commitIndex + ")\n\n"
+                + res + "\n\n" + err + "\n\n" + err_
               };
               git.createComment(opts);
             } else {
-              tester.logIssue(job, "Test " + job.prId + " build process is completed ("+job.commitIndex+")", "See " + url + " for the logs");
+              tester.logIssue(job, "Test ("+msg+") " + job.prId + " build is completed (" + job.commitIndex + ")", "See " + url + " for the logs");
             }
+            cb(err_);
           });
+        } else {
+          cb(err_);
         }
-        cb();
       }
-    }
+    //}
   });
 };
 
@@ -209,6 +226,8 @@ var buildJob = function (job) {
       index: 0, cmd: "ssh thali@192.168.1.20 'bash -s' < clone.sh", from: ["clone__.sh"], to: ["clone.sh"]
     });
 
+    var single_scr = job.config.build.substr ? true : false;
+
     if (job.target == "all" || job.target == "android") {
       cmds.push({
         index: 0,
@@ -224,9 +243,19 @@ var buildJob = function (job) {
         from: ["sign_droid__.sh", "pack_android__.sh"],
         to: ["sign_droid.sh", "pack_android.sh"]
       });
+
+      if (single_scr) {
+        cmds.push({
+          index: 0,
+          cmd: "chmod +x sign_ios.sh; ./sign_ios.sh",
+          ios: 1,
+          from: ["sign_ios__.sh", "pack_ios__.sh"],
+          to: ["sign_ios.sh", "pack_ios.sh"]
+        });
+      }
     }
 
-    if (job.target == "all" || job.target == "ios") {
+    if (!single_scr && (job.target == "all" || job.target == "ios")) {
       cmds.push({
         index: 0,
         cmd: "ssh thali@192.168.1.20 'bash -s' < build.sh",

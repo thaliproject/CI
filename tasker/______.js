@@ -26,6 +26,7 @@ if (target == "ios") {
   targets.nodes = 0;
   targets.droid = 0;
 }
+targets.cancel=1;
 
 var http = require('http');
 var lock_me = false;
@@ -90,7 +91,11 @@ http.createServer(function (req, res) {
 
     var name = url[0];
 
-    if (name == "nodes" || name == "droid") {
+    if (name == "nodes" || name == "droid" || name == "cancel") {
+      if (name == "cancel") {
+        url[1] = 0;
+      }
+
       if (name == "nodes") {
         targets.nodes = parseInt(url[1]);
         targets.droid = 0;

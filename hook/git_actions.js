@@ -164,7 +164,7 @@ var addBranchToQueue = function (user, repo, branch, opts) {
                 body: upd_message + " is added to the queue for testing as " + index + ". task. (" + opts.commits + ")"
               };
 
-              createComment(opt, function () {
+              exports.createComment(opt, function () {
               });
               delete json.body;
             }

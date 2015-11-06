@@ -28,12 +28,6 @@ exports.logIntoBranch = function (branch_name, filename, log, cb) {
       return;
     }
 
-    var res = sync("cd " + process.cwd() + "/TestResults;git checkout " + branch_name);
-    if (res.exitCode) {
-      cb("exit code:" + res.exitCode, res.out);
-      return;
-    }
-
     fs.writeFileSync(process.cwd() + '/TestResults/' + filename, log);
 
     exec("cd " + process.cwd()

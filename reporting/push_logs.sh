@@ -36,6 +36,8 @@ then
     ERROR_ABORT "push origin has failed : $ret"
   fi
 
+  ret=$(git checkout $PR_C_ID)
+
 else
   ERROR_ABORT "MISSING ARGUMENTS\n"
 fi

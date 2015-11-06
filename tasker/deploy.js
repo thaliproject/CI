@@ -148,6 +148,7 @@ exports.leave = function () {
   if (deployerChild) {
     deployerChild.kill();
   }
+  sync("cd "+__dirname+";./clean_nodes.sh");
   if (tryInter === null) return;
   clearInterval(tryInter);
 };

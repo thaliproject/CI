@@ -56,9 +56,6 @@ var getAndroidDevices = function () {
     })
   }
 
-  if (job.config.serverScript && job.config.serverScript.length)
-    jxcore.utils.cmdSync("curl 192.168.1.150:8060/droid=" + arr.length);
-
   return arr;
 };
 
@@ -91,7 +88,8 @@ var grabLogcat = function (class_name, deviceId, deviceName, cb) {
   var _this = this;
 
   this.run = function () {
-    var child = spawn('adb', ['-s', _this.deviceId, 'logcat', "-s", "jxcore-log"], eopts);
+    var child = spawn('adb', ['-s', _this.deviceId, 'logcat', "MainActivity:V", "thali-log:V",
+      "com.example.hello:V","jxcore-log:V","ActivityManager:V","*:S"], eopts);
     for (var i = 0; i < arrDevices.length; i++) {
       if (arrDevices[i].deviceId == _this.deviceId) {
         arrDevices[i].child = child;
@@ -190,16 +188,13 @@ var uninstallApp = function (class_name, device_name) {
 };
 
 var stopAndroidApp = function (class_name, device_name, cb) {
-  var cmd = 'sleep 1;adb -s "' + device_name + '" shell am force-stop ' + class_name;
+  var cmd = 'adb -s "'+device_name+'" shell pm uninstall -k '+class_name
+    + ';adb -s "' + device_name + '" reboot';
 
   if (cb) {
     exec(cmd, eopts, cb);
   } else {
-    var res = sync(cmd);
-    if (res.exitCode != 0) {
-      logme("Error: problem stopping Android apk(" + class_name + ") to device " + device_name, res.out, "");
-      return false;
-    }
+    sync(cmd);
 
     return true;
   }
@@ -251,6 +246,10 @@ for (var i = 0; i < arrDevices.length; i++) {
   if (!deployAndroid(builds + "/android_" + nodeId + "_" + job.uqID + ".apk", arrDevices[i].deviceId)) {
     logme("\n\nTest on this node has failed but the reason wasn't the test application itself.\n",
       "Cancelling the test result on this node.\n");
+
+    if (job.config.serverScript && job.config.serverScript.length)
+      jxcore.utils.cmdSync("curl 192.168.1.150:8060/cancel=1");
+
     process.exit(0);
   }
 }
@@ -260,6 +259,9 @@ var callback = function (err) {
     logme("Error!", err, "");
   }
 };
+
+if (job.config.serverScript && job.config.serverScript.length)
+  jxcore.utils.cmdSync("curl 192.168.1.150:8060/droid=" + arrDevices.length);
 
 for (var i = 0; i < arrDevices.length; i++) {
   runAndroidApp(job.config.csname.android, arrDevices[i].deviceId, arrDevices[i].deviceName, callback);
@@ -273,8 +275,8 @@ function timeoutKill() {
     if (dev.finished) continue;
 
     logArray[dev.deviceName].push("TIME-OUT KILL (timeout was " + timeout + "ms)");
+    stopAndroidApp(job.config.csname.android, dev.deviceId);
     if (dev.child) {
-      stopAndroidApp(job.config.csname.android, dev.deviceId);
       dev.child.kill();
     }
   }

@@ -1,6 +1,7 @@
 var db = require('./../db_actions');
 var git = require('./git_actions');
 
+var jobs_done = {};
 exports.OnRequest = function (req, res) {
   var json = req.post;
 
@@ -10,6 +11,11 @@ exports.OnRequest = function (req, res) {
   }
 
   if (json.pull_request) { // pull request
+    if (json.action != "opened" && json.action != "reopened"
+        && json.action != "synchronize") {
+      console.log("Skipping PR > ", json.action, json.number, json.pull_request.title);
+      return;
+    }
     var prNumber = json.number;
     var pr = json.pull_request;
     var prId = pr.id; // this needs to be unique!! see if we tested this PR before
@@ -38,8 +44,11 @@ exports.OnRequest = function (req, res) {
         logme("BAD REQUEST from repo", repo_name, "red");
       }
     } else {
-      if (db.hasJob(prId, commits)) return;
+      if (db.hasJob(prNumber, commits)) return;
 
+      if (jobs_done[prNumber + commits]) return;
+
+      jobs_done[prNumber + commits] = 1;
       logme("PR >", prId, commits, prNumber, user, title, repo_name, branch, "yellow");
       git.newTest(prId, prNumber, user, title, repo_name, branch, commits);
     }

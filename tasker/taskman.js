@@ -165,8 +165,8 @@ var runTask = function (job) {
 
 var testTask = function () {
   if (taskerBusy) {
-    // a build operation can not take longer than 20 minutes
-    if (Date.now() - lastStartTime > 1200000) {
+    // a build operation can not take longer than 35 minutes
+    if (Date.now() - lastStartTime > 2100000) {
       if (taskerReset)
         return;
 

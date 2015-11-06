@@ -53,9 +53,6 @@ var getIOSDevices = function (cb) {
       }
     }
 
-    if (job.config.serverScript && job.config.serverScript.length)
-      jxcore.utils.cmdSync("curl 192.168.1.150:8060/ios=" + arrDevices.length);
-
     cb(null);
   });
 };
@@ -165,6 +162,9 @@ var installApp = function (job, cb) {
   jobCB = cb;
 
   var loc = path.join(builds, job.uqID + "/build_ios/", job.config.binary_path.ios);
+
+  if (job.config.serverScript && job.config.serverScript.length)
+    jxcore.utils.cmdSync("curl 192.168.1.150:8060/ios=" + arrDevices.length);
 
   for (var i = 0; i < arrDevices.length; i++) {
     var ll = new grabLLDB(i, loc, arrDevices[i].deviceId, function (err) {
