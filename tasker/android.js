@@ -89,7 +89,8 @@ var grabLogcat = function (class_name, deviceId, deviceName, cb) {
 
   this.run = function () {
     var child = spawn('adb', ['-s', _this.deviceId, 'logcat', "MainActivity:V", "thali-log:V",
-      "com.example.hello:V","jxcore-log:V","ActivityManager:V","*:S"], eopts);
+      "ActivityThread:V",
+      _this.class_name + ":V","jxcore-log:V","ActivityManager:V","*:S"], eopts);
     for (var i = 0; i < arrDevices.length; i++) {
       if (arrDevices[i].deviceId == _this.deviceId) {
         arrDevices[i].child = child;
