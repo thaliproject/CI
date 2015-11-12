@@ -16,6 +16,13 @@ exports.OnRequest = function (req, res) {
       console.log("Skipping PR > ", json.action, json.number, json.pull_request.title);
       return;
     }
+
+    try {
+      require('fs').writeFileSync('./aaa.json', JSON.stringify(json, null, 2));
+    } catch(e_) {
+      console.error("Couldn't write the JSON", e_);
+    }
+
     var prNumber = json.number;
     var pr = json.pull_request;
     var prId = pr.id; // this needs to be unique!! see if we tested this PR before
@@ -23,6 +30,7 @@ exports.OnRequest = function (req, res) {
     var title = pr.title; // title of commit / PR
     var branch, repo_name = "";
     var commits = 9999999;
+    var target_branch = pr.base.ref;
 
     if (pr.statuses_url) {
       var ln = pr.statuses_url.indexOf('statuses/');
@@ -50,7 +58,7 @@ exports.OnRequest = function (req, res) {
 
       jobs_done[prNumber + commits] = 1;
       logme("PR >", prId, commits, prNumber, user, title, repo_name, branch, "yellow");
-      git.newTest(prId, prNumber, user, title, repo_name, branch, commits);
+      git.newTest(prId, prNumber, user, title, repo_name, branch, commits, target_branch);
     }
   } else if (json.hook && (typeof json.hook_id !== "undefined")) { // new web hook
     var hook_id = json.hook_id;

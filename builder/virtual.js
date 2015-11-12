@@ -72,7 +72,7 @@ var updateScripts = function (job, cmd) {
 
   var serverScript = "";
   if (job.config.serverScript && job.config.serverScript.length) {
-    serverScript = "mkdir -p builds/server_" + job.uqID + "/"+job.config.serverScript+"/;ERROR_ABORT;\n";
+    serverScript = "mkdir -p builds/server_" + job.uqID + "/" + job.config.serverScript + "/;ERROR_ABORT;\n";
 
     var target_loc = path.join("builds/server_" + job.uqID + "/" + job.config.serverScript, "../");
     serverScript += "scp -r thali@192.168.1.20:~/Github/testBuild/" + job.config.serverScript + " " + target_loc + " ;ERROR_ABORT"
@@ -80,10 +80,11 @@ var updateScripts = function (job, cmd) {
 
   for (var i = 0; i < arrFrom.length; i++) {
     var data = fs.readFileSync(__dirname + "/" + arrFrom[i]) + "";
-    var url = "https://github.com/" + job.user + "/" + job.repo + "/archive/" + job.branch + ".zip";
-    data = data.replace("{{REPOSITORY}}", url);
+    // var url = "https://github.com/" + job.user + "/" + job.repo + "/archive/" + job.branch + ".zip";
+    data = data.replace("{{REPOSITORY}}", job.repo).replace("{{REPOSITORY}}", job.repo);
 
     data = data.replace("{{BRANCH_NAME}}", job.branch);
+    data = data.replace("{{TARGET_BRANCH}}", job.targetBranch).replace("{{TARGET_BRANCH}}", job.targetBranch);
     data = data.replace("{{COMBINED_NAME}}", job.repo + "-" + job.branch);
 
     var scr = job.config.build.substr ? job.config.build : (cmd.ios ? job.config.build.ios : job.config.build.android);
@@ -119,7 +120,7 @@ var jobErrorReportAndRemove = function (job, err, stdout, stderr) {
       user: job.user,
       repo: job.repo,
       number: job.prNumber,
-      body: "Test Server build has failed. ("+job.uqID+") See error details below; \n```" + msg + "\n```"
+      body: "Test Server build has failed. (" + job.uqID + ") See error details below; \n```" + msg + "\n```"
     };
     git.createComment(opts);
   } else {
@@ -157,51 +158,47 @@ var runBuild = function (cmds, job, index, cb) {
       }
     }
 
-    //if (err) {
-   //   jobErrorReportAndRemove(job, err, stdout, stderr);
-    //  cb(err);
-    //} else {
-      gitLog += "\n```\n" + stdout + "\n" + stderr + "\n```\n";
-      index++;
-      if (!err && index < cmds.length) {
-        runBuild(cmds, job, index, cb);
-      } else {
-        var err_ = err;
-        var msg = "Success";
-        if (err)  {
-          gitLog += "\n" + err;
-          db.removeJob(job);
+    gitLog += "\n```\n" + stdout + "\n" + stderr + "\n```\n";
+    index++;
+    if (!err && index < cmds.length) {
+      runBuild(cmds, job, index, cb);
+    } else {
+      var err_ = err;
+      var msg = "Success";
+      if (err) {
+        gitLog += "\n" + err;
+        db.removeJob(job);
 
-          stopVM(function () {
-            builderBusy = false;
-            builderReset = false;
-            activeJobId = 0;
-          });
+        stopVM(function () {
+          builderBusy = false;
+          builderReset = false;
+          activeJobId = 0;
+        });
 
-          msg = "Fail";
-        }
-
-        if (job.prNumber) {
-          git.commitFile(job, "build", "Test ("+msg+") " + job.prId + " Build Logs", gitLog, function (err, res, url) {
-            gitLog = "";
-            if (err) {
-              var opts = {
-                user: job.user,
-                repo: job.repo,
-                number: job.prNumber,
-                body: "Build is completed ("+msg+") but couldn't commit the log file. (" + job.commitIndex + ")\n\n"
-                + res + "\n\n" + err + "\n\n" + err_
-              };
-              git.createComment(opts);
-            } else {
-              tester.logIssue(job, "Test ("+msg+") " + job.prId + " build is completed (" + job.commitIndex + ")", "See " + url + " for the logs");
-            }
-            cb(err_);
-          });
-        } else {
-          cb(err_);
-        }
+        msg = "Fail";
       }
+
+      if (job.prNumber) {
+        git.commitFile(job, "build", "Test (" + msg + ") " + job.prId + " Build Logs", gitLog, function (err, res, url) {
+          gitLog = "";
+          if (err) {
+            var opts = {
+              user: job.user,
+              repo: job.repo,
+              number: job.prNumber,
+              body: "Build is completed (" + msg + ") but couldn't commit the log file. (" + job.commitIndex + ")\n\n"
+              + res + "\n\n" + err + "\n\n" + err_
+            };
+            git.createComment(opts);
+          } else {
+            tester.logIssue(job, "Test (" + msg + ") " + job.prId + " build is completed (" + job.commitIndex + ")", "See " + url + " for the logs");
+          }
+          cb(err_);
+        });
+      } else {
+        cb(err_);
+      }
+    }
     //}
   });
 };
@@ -222,6 +219,7 @@ var buildJob = function (job) {
     // build
     var cmds = [];
     cmds.push({index: 0, cmd: "rm -rf build_android/;mkdir build_android;rm -rf build_ios;mkdir build_ios", sync: 1});
+    cmds.push({index:0, cmd:'ssh pi@192.168.1.150 "cd ~/Repo/'+job.repo+';git pull"', sync:1});
     cmds.push({
       index: 0, cmd: "ssh thali@192.168.1.20 'bash -s' < clone.sh", from: ["clone__.sh"], to: ["clone.sh"]
     });

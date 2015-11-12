@@ -218,6 +218,7 @@ exports.addJob = function (user, repo, branch, opts, json) {
     priority: json.priority, // normal, asap, now
     compiled: false, // whether osx VM compiled the application file or not
     commitIndex: opts.commits,
+    targetBranch: opts.target_branch, // target branch to merge
     links: [] // apk etc. links for compiled apps
   };
 

@@ -192,7 +192,7 @@ exports.addBranchToQueue = addBranchToQueue;
 
 // pdId -> can be hookId or prId
 // if prNumber == null, prId = hookId
-var newTest = function (prId, prNumber, user, title, repo_name, branch, commits) {
+var newTest = function (prId, prNumber, user, title, repo_name, branch, commits, target_branch) {
   var opts = {
     user: repo_name.split('/')[0],
     repo: repo_name.split('/')[1],
@@ -203,6 +203,7 @@ var newTest = function (prId, prNumber, user, title, repo_name, branch, commits)
     addBranchToQueue(opts.user, opts.repo, branch, {
       commits: commits,
       prId: prId, prNumber: null,
+      target_branch: target_branch,
       sender: user, title: title});
     return;
   }
@@ -220,6 +221,7 @@ var newTest = function (prId, prNumber, user, title, repo_name, branch, commits)
           addBranchToQueue(opts.user, opts.repo, branch, {
             commits: commits,
             prId: prId, prNumber: prNumber,
+            target_branch: target_branch,
             sender: user, title: title});
           return;
         }

@@ -26,7 +26,14 @@ ERROR_ABORT() {
 ### END - JXcore Test Server   --------
 
 cd Github;ERROR_ABORT
-rm -rf testBuildOrg;ERROR_ABORT
-wget {{REPOSITORY}};ERROR_ABORT
-unzip {{BRANCH_NAME}};ERROR_ABORT
-mv {{COMBINED_NAME}} testBuildOrg;ERROR_ABORT
+rm -rf testBuildOrg
+scp -r pi@192.168.1.150:~/Repo/{{REPOSITORY}} .
+mv {{REPOSITORY}} testBuildOrg
+ERROR_ABORT
+cd testBuildOrg
+git checkout master
+git checkout {{TARGET_BRANCH}}
+git checkout {{BRANCH_NAME}}
+git merge {{TARGET_BRANCH}} --no-edit
+ERROR_ABORT
+cd ..
