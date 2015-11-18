@@ -186,9 +186,11 @@ var grabLogs = function (job, target) {
   var loc = path.join(__dirname, "../tasker/results/" + job.uqID + "/");
 
   var log = "";
+  var something_to_push = false;
   if (target == "android") {
     log += "###Android Logs\n";
     var dirs = fs.readdirSync(loc);
+
     for (var i = 0; i < dirs.length; i++) {
       if (dirs[i] == 'ios') continue;
 
@@ -206,12 +208,76 @@ var grabLogs = function (job, target) {
           log += (fs.readFileSync(name + "/result.json") + "");
           log += "\n"
         }
+
+        if (fs.existsSync(name + "/result_.json")) {
+          try {
+            var res = JSON.parse(fs.readFileSync(name + "/result_.json") + "");
+            var skip = i != dirs.length-1;
+            something_to_push = skip;
+            for(var o in res) {
+              if (res.hasOwnProperty(o)) {
+                var str = res[o];
+                var fname = git.commitFile(job, dirs[i] + "_" + o, "Test " + job.uqID + "_" +dirs[i] + "_"
+                  + o + " Logs", "\n```\n" + str + "\n```\n", function (err, res, url) {
+                  if (err) {
+                    logme("Failed to create a device log gist. (" + dirs[i] + "_" + o + ")", err + "\n" + res, "red");
+                  }
+
+                }, skip);
+                log += "[" + o +"](https://github.com/ThaliTester/TestResults/blob/" + fname + ")\n\n";
+              }
+            }
+          } catch(e) {
+            log += "\n\nCouldn't parse the device logs for " + dirs[i] + "\n````"+e+"```\n";
+          }
+        }
       }
     }
+
+    if(something_to_push) {
+      var fname = git.commitFile(job, "_", "_", "_", function (err, res, url) {
+        if (err) {
+          logme("Failed to create a device log gist!!", err + "\n" + res, "red");
+        }
+      }, -1);
+    }
   } else {
-    if (fs.existsSync(loc + "ios/result.json")) {
+    if (fs.existsSync(loc + "ios/result_.json")) {
       log += "###iOS Logs\n";
-      log += (fs.readFileSync(loc + "ios/result.json") + "");
+      try {
+        var res = JSON.parse(fs.readFileSync(loc + "ios/result_.json") + "");
+
+        for(var o in res) {
+          if (res.hasOwnProperty(o)) {
+            if (!o || !res[o]) continue;
+
+            var str = res.join ? res[o].join("") : res[o] + "";
+            var ind = str.indexOf("[100%] Installed package ");
+            if (ind > 0) {
+              str = str.substr(ind);
+            }
+
+            var fname = git.commitFile(job, "iOS_" + o, "Test " + job.uqID + "_iOS_"
+            + o + " Logs", "\n```\n" + str + "\n```\n", function (err, res, url) {
+              if (err) {
+                if ((err+"").indexOf("Already on 'master'")<0) {
+                  logme("Failed to create a device log gist. (IOS_" + o + ")\n", err + "\n" + res, "red");
+                }
+              }
+
+            }, true);
+            log += "[" + o +"](https://github.com/ThaliTester/TestResults/blob/" + fname + ")\n\n";
+          }
+        }
+      } catch(e) {
+        log += "\n\nCouldn't parse the iOS logs"+ "\n````"+e+"```\n";
+      }
+
+      var fname = git.commitFile(job, "_", "_", "_", function (err, res, url) {
+        if (err) {
+          logme("Failed to create a device log gist!!", err + "\n" + res, "red");
+        }
+      }, -1);
     }
   }
 

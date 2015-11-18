@@ -26,6 +26,7 @@ ERROR_ABORT() {
 if [ $# -gt 0 ]
 then
   cd ../TestResults/
+  ret=$(git commit -a -m '_')
   ret=$(git stash)
   ret=$(git checkout master)
   ret=$(git checkout -b $PR_C_ID)

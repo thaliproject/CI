@@ -21,14 +21,23 @@ var createBranch = function (branch_name, cb) {
 
 // this needs to be syched!
 // why ? we don't want any other test worker write in between
-exports.logIntoBranch = function (branch_name, filename, log, cb) {
+exports.logIntoBranch = function (branch_name, filename, log, cb, skip) {
+  if(skip && skip !== -1) {
+    fs.writeFileSync(process.cwd() + '/TestResults/' + filename, log);
+    cb(null);
+    return;
+  }
+
+  logme("Creating Github Gist", "red");
+
   createBranch(branch_name, function (err, res) {
     if (err) {
       cb(err, res);
       return;
     }
 
-    fs.writeFileSync(process.cwd() + '/TestResults/' + filename, log);
+    if (skip !== -1)
+      fs.writeFileSync(process.cwd() + '/TestResults/' + filename, log);
 
     exec("cd " + process.cwd()
       + "/reporting;chmod +x ./commit_logs.sh;./commit_logs.sh " + branch_name, eopts,

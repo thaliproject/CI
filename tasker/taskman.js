@@ -163,6 +163,7 @@ var runTask = function (job) {
   }, delay);
 };
 
+
 var testTask = function () {
   if (taskerBusy) {
     // a build operation can not take longer than 35 minutes
@@ -189,12 +190,16 @@ var testTask = function () {
 
   // start VM from snapshot
   taskerBusy = true;
-  lastStartTime = Date.now();
-
   activeJob = job;
 
-  // run task
-  runTask(job);
+  var delay = 10000; // phones were rebooting
+  sync("cd " + __dirname + ";./clean_nodes.sh");
+  lastStartTime = Date.now() + delay;
+
+  setTimeout(function() {
+    // run task
+    runTask(job);
+  }, delay);
 };
 
 setInterval(testTask, 3000);

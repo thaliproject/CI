@@ -54,7 +54,10 @@ var checkIt = function(){
       console.log(out.out, "\n");
     else
       console.log("Skipping the log for NPM since the exitCode was 0");
-    
+
+    obj.devices.cancel = 0;
+    delete obj.devices.cancel;
+
     console.log(">", process.argv[0] + " index.js " + JSON.stringify(obj));
     
     // give a small break for a potential kill SIGNAL from server

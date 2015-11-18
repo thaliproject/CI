@@ -35,6 +35,10 @@ var getAndroidDevices = function () {
   if (res[0].indexOf("List of devices") == 0) {
     for (var i = 1; i < res.length; i++) {
       if (res[i].trim().length == 0) continue;
+      if (res[i].indexOf('offline') > 0) {
+        logme("Warning: Phone " + res[i] + " OFFLINE");
+        continue; // phone offline
+      }
       var dev = res[i].split('\t');
       devs.push(dev);
     }
@@ -65,10 +69,10 @@ var appCounter = 0;
 var testFailed = false;
 
 var deployAndroid = function (apk_path, device_name, retry_count) {
-  var cmd = 'sleep 2;adb -s "' + device_name + '" install -r ' + apk_path;
+  var cmd = 'sleep 1;adb -s ' + device_name + ' install -r ' + apk_path;
   var res = sync(cmd);
   if (res.exitCode != 0) {
-    if(retry_count < 2) {
+    if(retry_count < 3) {
       return deployAndroid(apk_path, device_name, retry_count ? retry_count + 1 : 1 );
     }
 
@@ -88,9 +92,7 @@ var grabLogcat = function (class_name, deviceId, deviceName, cb) {
   var _this = this;
 
   this.run = function () {
-    var child = spawn('adb', ['-s', _this.deviceId, 'logcat', "MainActivity:V", "thali-log:V",
-      "ActivityThread:V",
-      _this.class_name + ":V","jxcore-log:V","ActivityManager:V","*:S"], eopts);
+    var child = spawn('adb', ['-s', _this.deviceId, 'logcat'], eopts);
     for (var i = 0; i < arrDevices.length; i++) {
       if (arrDevices[i].deviceId == _this.deviceId) {
         arrDevices[i].child = child;
@@ -152,6 +154,8 @@ var logcatIndex = 0;
 var runAndroidApp = function (class_name, deviceId, deviceName, cb) {
   // clear logcat cache
   sync('adb -s "' + deviceId + '" logcat -c');
+  // !! this may not work on some devices so don't check the failure
+  // CI restarts the devices on each run
 
   //listen logcat on parallel
   var lg = new grabLogcat(class_name, deviceId, deviceName, function (err, _this) {
@@ -215,19 +219,7 @@ process.on('mobile_ready', function (deviceId, failed) {
   if (appCounter < arrDevices.length) return;
   appCounter = 0;
 
-  var str = "```\n";
-  for (var o in logArray) {
-    if (logArray.hasOwnProperty(o)) {
-      str += o + ": \n";
-      if (logArray[o].join) {
-        str += logArray[o].join();
-      }
-      str += "\n\n";
-    }
-  }
-  str += "```\n";
-
-  fs.writeFileSync(path.join(__dirname, "../../result.json"), str);
+  fs.writeFileSync(path.join(__dirname, "../../result_.json"), JSON.stringify(logArray));
   logme("Android task is completed", testFailed ? "" : "");
   for (var i = 0; i < arrDevices.length; i++) {
     stopAndroidApp(job.config.csname.android, arrDevices[i].deviceId);

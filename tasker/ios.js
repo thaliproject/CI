@@ -226,34 +226,11 @@ exports.test = function (job, cb) {
         arr = {"server": ["no logs recevied"]};
       }
 
-      var str = "\n```\n";
-      for (var o in arr) {
-        if (arr.hasOwnProperty(o)) {
-          if (arr[o] == null) {
-            str += "\n\nios.js 219: " + o + " is null!!!\n\n";
-            continue;
-          }
-          str += o + ": \n";
-          if (arr[o].join) {
-            var sub = arr[o].join();
-            var ind = sub.indexOf("[100%] Installed package ");
-            if (ind > 0) {
-              sub = sub.substr(ind);
-            }
-
-            str += sub;
-
-          }
-          str += "\n\n\n";
-        }
-      }
-      str += "```\n";
-
-
       try {
-        fs.writeFileSync(__dirname + "/results/" + job.uqID + "/ios/result.json", str);
+        fs.writeFileSync(__dirname + "/results/" + job.uqID + "/ios/result_.json", JSON.stringify(arr));
       } catch (e) {
         isFailed = e;
+        console.error("Failed to write iOS results", e);
       }
     }
 

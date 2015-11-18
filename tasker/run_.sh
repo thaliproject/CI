@@ -19,7 +19,7 @@ LOG() {
 ERROR_ABORT() {
   if [[ $? != 0 ]]
   then
-    LOG $RED_COLOR "run_.sh aborted\n"
+    LOG "Android testing process has failed\n"
     exit -1
   fi
 }

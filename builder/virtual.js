@@ -253,21 +253,23 @@ var buildJob = function (job) {
       }
     }
 
-    if (!single_scr && (job.target == "all" || job.target == "ios")) {
-      cmds.push({
-        index: 0,
-        cmd: "ssh thali@192.168.1.20 'bash -s' < build.sh",
-        ios: 1,
-        from: ["build__.sh"],
-        to: ["build.sh"]
-      });
-      cmds.push({
-        index: 0,
-        cmd: "chmod +x sign_ios.sh; ./sign_ios.sh",
-        ios: 1,
-        from: ["sign_ios__.sh", "pack_ios__.sh"],
-        to: ["sign_ios.sh", "pack_ios.sh"]
-      });
+    if (job.target == "all" || job.target == "ios") {
+      if (!(single_scr && job.target == "all")) {
+        cmds.push({
+          index: 0,
+          cmd: "ssh thali@192.168.1.20 'bash -s' < build.sh",
+          ios: 1,
+          from: ["build__.sh"],
+          to: ["build.sh"]
+        });
+        cmds.push({
+          index: 0,
+          cmd: "chmod +x sign_ios.sh; ./sign_ios.sh",
+          ios: 1,
+          from: ["sign_ios__.sh", "pack_ios__.sh"],
+          to: ["sign_ios.sh", "pack_ios.sh"]
+        });
+      }
     }
 
     cmds.push({

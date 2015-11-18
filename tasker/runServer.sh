@@ -5,7 +5,7 @@
 ### Make sure multiple calls to this script file compiles the application file
 
 NORMAL_COLOR='\033[0m'
-RED_COLOR='\033[0;31m'
+RED_COLOR=''
 GREEN_COLOR='\033[0;32m'
 GRAY_COLOR='\033[0;37m'
 
@@ -20,7 +20,7 @@ ERROR_ABORT() {
   if [[ $? != 0 ]]
   then
     rm -rf runServerRemote.sh
-    LOG $RED_COLOR "execution aborted\n"
+    LOG "One or more Android tests are failed.\n"
     exit -1
   fi
 }

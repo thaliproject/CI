@@ -56,9 +56,7 @@ var createGist = function (title, body, cb) {
 };
 exports.createGist = createGist;
 
-var commitFile = function (job, name, title, body, cb) {
-  logme("Creating Github Gist", "red");
-
+var commitFile = function (job, name, title, body, cb, skip) {
   var bname = job.uqID + "_" + job.title.replace(/[ $\?>.*,;:@\"|\'\+<&]/g, '_')
     + "_" + job.sender;
 
@@ -66,7 +64,9 @@ var commitFile = function (job, name, title, body, cb) {
 
   reporting.logIntoBranch(bname, name + ".md", txt, function(err, res){
     cb(err, res, "https://github.com/ThaliTester/TestResults/tree/" + bname + "/");
-  });
+  }, skip);
+
+  return bname + "/" + name + ".md";
 };
 exports.commitFile = commitFile;
 
