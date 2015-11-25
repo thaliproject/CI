@@ -1,9 +1,7 @@
 #!/usr/bin/env bash
 
 rm -rf node.config
-rm -rf *.json
 sudo pkill adb
 sudo adb devices
+sleep 1;
 sudo pkill jx
-
-sudo reboot

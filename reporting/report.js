@@ -18,7 +18,6 @@ var createBranch = function (branch_name, cb) {
     });
 };
 
-
 // this needs to be syched!
 // why ? we don't want any other test worker write in between
 exports.logIntoBranch = function (branch_name, filename, log, cb, skip) {

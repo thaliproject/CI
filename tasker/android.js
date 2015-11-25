@@ -68,19 +68,18 @@ var builds = path.join(__dirname, "../builder/builds/" + job.uqID + "/build_andr
 var appCounter = 0;
 var testFailed = false;
 
-var deployAndroid = function (apk_path, device_name, retry_count) {
-  var cmd = 'sleep 1;adb -s ' + device_name + ' install -r ' + apk_path;
-  var res = sync(cmd);
-  if (res.exitCode != 0) {
-    if(retry_count < 3) {
-      return deployAndroid(apk_path, device_name, retry_count ? retry_count + 1 : 1 );
+var deployAndroid = function (apk_path, device_name) {
+  var cmd = 'adb -s ' + device_name + ' install -r ' + apk_path;
+  var res = null;
+  exec(cmd, eopts, function (err, stderr, stdout) {
+    if (err) {
+      res = ("Error: problem deploying Android apk(" + apk_path + ") to device " + device_name + "\n" + err);
     }
+    jxcore.utils.continue();
+  });
+  jxcore.utils.jump();
 
-    logme("Error: problem deploying Android apk(" + apk_path + ") to device " + device_name, res.out);
-    return false;
-  }
-
-  return true;
+  return res;
 };
 
 var logArray = {};
@@ -205,6 +204,16 @@ var stopAndroidApp = function (class_name, device_name, cb) {
   }
 };
 
+process.on('SIGTERM', function(){
+  if(process.logsOnDisk) return;
+  try {
+    fs.writeFileSync(path.join(__dirname, "../../result_.json"), JSON.stringify(logArray));
+  } catch(e) {
+    logme("Could not write logs. Error:", e + "");
+  }
+  process.exit(1);
+});
+
 process.on('mobile_ready', function (deviceId, failed) {
   for (var i = 0; i < arrDevices.length; i++) {
     if (arrDevices[i].deviceId == deviceId) {
@@ -219,8 +228,13 @@ process.on('mobile_ready', function (deviceId, failed) {
   if (appCounter < arrDevices.length) return;
   appCounter = 0;
 
-  fs.writeFileSync(path.join(__dirname, "../../result_.json"), JSON.stringify(logArray));
-  logme("Android task is completed", testFailed ? "" : "");
+  process.logsOnDisk = true;
+  try {
+    fs.writeFileSync(path.join(__dirname, "../../result_.json"), JSON.stringify(logArray));
+  } catch(e) {
+    logme("Could not write logs. Error:", e + "");
+  }
+  logme("Android task is completed.", testFailed ? "[FAILED]" : "[SUCCESS]");
   for (var i = 0; i < arrDevices.length; i++) {
     stopAndroidApp(job.config.csname.android, arrDevices[i].deviceId);
   }
@@ -234,17 +248,25 @@ for (var i = 0; i < arrDevices.length; i++) {
   uninstallApp(job.config.csname.android, arrDevices[i].deviceId);
 }
 
+var retry_count=0;
 // deploy apps
 for (var i = 0; i < arrDevices.length; i++) {
-  if (!deployAndroid(builds + "/android_" + nodeId + "_" + job.uqID + ".apk", arrDevices[i].deviceId)) {
+  var res = deployAndroid(builds + "/android_" + nodeId + "_" + job.uqID + ".apk", arrDevices[i].deviceId);
+  if (res && retry_count < 2) {
+    retry_count++;
+    i--;
+    continue;
+  }
+  if (res) {
     logme("\n\nTest on this node has failed but the reason wasn't the test application itself.\n",
-      "Cancelling the test result on this node.\n");
+      "Cancelling the test result on this node.\n", res);
 
     if (job.config.serverScript && job.config.serverScript.length)
       jxcore.utils.cmdSync("curl 192.168.1.150:8060/cancel=1");
 
     process.exit(0);
   }
+  retry_count = 0;
 }
 
 var callback = function (err) {
@@ -273,6 +295,9 @@ function timeoutKill() {
       dev.child.kill();
     }
   }
+  setTimeout(function(){
+    process.emit("SIGTERM");
+  }, 1000);
 }
 
 // set timeout

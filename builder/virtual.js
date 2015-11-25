@@ -80,12 +80,10 @@ var updateScripts = function (job, cmd) {
 
   for (var i = 0; i < arrFrom.length; i++) {
     var data = fs.readFileSync(__dirname + "/" + arrFrom[i]) + "";
-    // var url = "https://github.com/" + job.user + "/" + job.repo + "/archive/" + job.branch + ".zip";
     data = data.replace("{{REPOSITORY}}", job.repo).replace("{{REPOSITORY}}", job.repo);
 
-    data = data.replace("{{BRANCH_NAME}}", job.branch);
+    data = data.replace("{{BRANCH_NAME}}", job.commitIndex? job.commitIndex : job.branch);
     data = data.replace("{{TARGET_BRANCH}}", job.targetBranch).replace("{{TARGET_BRANCH}}", job.targetBranch);
-    data = data.replace("{{COMBINED_NAME}}", job.repo + "-" + job.branch);
 
     var scr = job.config.build.substr ? job.config.build : (cmd.ios ? job.config.build.ios : job.config.build.android);
     data = data.replace("{{BUILD_SCRIPT_PATH}}", scr);

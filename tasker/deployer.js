@@ -30,25 +30,23 @@ function CLEANUP() {
   sync("cd " + __dirname + ";rm reset.sh;rm run.sh");
 }
 
+var logs_copied = false;
 process.on('exit', function () {
-  if (job && job.nodes)
+  if (job && job.nodes) {
+    COPY_LOGS();
     CLEANUP();
+  }
 });
 
 function COPY_LOGS() {
-  // give 45 sec max to copy logs
-  jxcore.tasks.addTask(function () {
-    setTimeout(function () {
-      console.error("COPY_LOGS timeout reached");
-      process.exit(1);
-    }, 45000);
-  });
-
+  if (logs_copied) return;
+  logs_copied = true;
   for (var i = 0; i < job.nodes.length; i++) {
     sync("mkdir -p " + __dirname + "/results/" + job.uqID + "/" + job.nodes[i].name + "/");
-    sync("scp pi@" + job.nodes[i].ip + ":~/*.json " + __dirname + "/results/" + job.uqID + "/" + job.nodes[i].name + "/");
+    var res = sync("scp pi@" + job.nodes[i].ip + ":~/*.json " + __dirname + "/results/" + job.uqID + "/" + job.nodes[i].name + "/");
+    if (res.exitCode)
+      console.error("CopyLog Failed ("+job.nodes[i].name+"):", res.out);
   }
-
 }
 
 var reset = fs.readFileSync(__dirname + "/reset_.sh") + "";

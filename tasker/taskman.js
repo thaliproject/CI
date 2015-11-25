@@ -113,7 +113,8 @@ var runTask = function (job) {
     fs.writeFileSync(rs_final, src);
 
     logme("IS Args:", p);
-    serverChild = exec("cd " + process.cwd() + "/tasker;chmod +x ./runServer.sh;./runServer.sh " + p, eopts, function (err, stdout, stderr) {
+    serverChild = exec("cd " + process.cwd() + "/tasker;chmod +x ./runServer.sh;./runServer.sh " + p,
+      eopts, function (err, stdout, stderr) {
       if (err && !serverChild.killing) {
         tester.report(job, 'server', err + stdout + stderr, false);
         if (taskCounter >= 0) {
@@ -166,8 +167,8 @@ var runTask = function (job) {
 
 var testTask = function () {
   if (taskerBusy) {
-    // a build operation can not take longer than 35 minutes
-    if (Date.now() - lastStartTime > 2100000) {
+    // a build operation can not take longer than 40 minutes
+    if (Date.now() - lastStartTime > 2400000) {
       if (taskerReset)
         return;
 
@@ -192,7 +193,8 @@ var testTask = function () {
   taskerBusy = true;
   activeJob = job;
 
-  var delay = 10000; // phones were rebooting
+  var delay = 45000; // phones were rebooting
+  // randomly also restart the raspberries
   sync("cd " + __dirname + ";./clean_nodes.sh");
   lastStartTime = Date.now() + delay;
 

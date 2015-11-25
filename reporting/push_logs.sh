@@ -26,7 +26,10 @@ ERROR_ABORT() {
 if [ $# -gt 0 ]
 then
   cd ../TestResults/
+  ret=$(git add --all)
   ret=$(git commit -a -m '_')
+  ret=$(git push)
+  # call git stash (in case of commit failure)
   ret=$(git stash)
   ret=$(git checkout master)
   ret=$(git checkout -b $PR_C_ID)

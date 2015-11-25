@@ -145,10 +145,10 @@ exports.test = function (job, trying, callback_) {
 
 exports.leave = function () {
   leaveRecevied = true;
+  sync("cd "+__dirname+";./stop_nodes.sh");
   if (deployerChild) {
     deployerChild.kill();
   }
-  sync("cd "+__dirname+";./clean_nodes.sh");
   if (tryInter === null) return;
   clearInterval(tryInter);
 };

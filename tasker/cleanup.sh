@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 pkill jx
 rm node.config
-rm result.json
+rm result_.json
 rm console.json
 rm -rf test

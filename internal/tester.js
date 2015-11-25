@@ -186,7 +186,7 @@ var grabLogs = function (job, target) {
   var loc = path.join(__dirname, "../tasker/results/" + job.uqID + "/");
 
   var log = "";
-  var something_to_push = false;
+
   if (target == "android") {
     log += "###Android Logs\n";
     var dirs = fs.readdirSync(loc);
@@ -212,8 +212,6 @@ var grabLogs = function (job, target) {
         if (fs.existsSync(name + "/result_.json")) {
           try {
             var res = JSON.parse(fs.readFileSync(name + "/result_.json") + "");
-            var skip = i != dirs.length-1;
-            something_to_push = skip;
             for(var o in res) {
               if (res.hasOwnProperty(o)) {
                 var str = res[o];
@@ -223,7 +221,7 @@ var grabLogs = function (job, target) {
                     logme("Failed to create a device log gist. (" + dirs[i] + "_" + o + ")", err + "\n" + res, "red");
                   }
 
-                }, skip);
+                }, true);
                 log += "[" + o +"](https://github.com/ThaliTester/TestResults/blob/" + fname + ")\n\n";
               }
             }
@@ -232,14 +230,6 @@ var grabLogs = function (job, target) {
           }
         }
       }
-    }
-
-    if(something_to_push) {
-      var fname = git.commitFile(job, "_", "_", "_", function (err, res, url) {
-        if (err) {
-          logme("Failed to create a device log gist!!", err + "\n" + res, "red");
-        }
-      }, -1);
     }
   } else {
     if (fs.existsSync(loc + "ios/result_.json")) {
@@ -272,16 +262,10 @@ var grabLogs = function (job, target) {
       } catch(e) {
         log += "\n\nCouldn't parse the iOS logs"+ "\n````"+e+"```\n";
       }
-
-      var fname = git.commitFile(job, "_", "_", "_", function (err, res, url) {
-        if (err) {
-          logme("Failed to create a device log gist!!", err + "\n" + res, "red");
-        }
-      }, -1);
     }
   }
 
-  return log
+  return log;
 };
 
 
@@ -360,7 +344,6 @@ exports.commitLog = function (uqID) {
       else {
         logIssue(log.job, "Test " + uqID + "("+log.job.commitIndex+") has successfully finished without an error", "See " + url + " for the logs");
       }
-
     }
     log.job = null;
     log.failed = null;
