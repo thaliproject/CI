@@ -295,31 +295,25 @@ exports.report = function (job, target, err, result) {
     };
   }
 
-  var obj = {};
   if (err === null || typeof err === "undefined")
-    err = false;
+    err = "No Error";
 
-  if (logs[job.uqID].error) {
-    logs[job.uqID].error = logs[job.uqID].error + "\n\n" + target + " : " + err;
+  if (target != 'server') {
+    if (logs[job.uqID].error) {
+      logs[job.uqID].error += "\n\n" + target + " : " + err;
+    } else {
+      logs[job.uqID].error = "\n\n" + target + " : " + err;
+    }
+
+    var log = grabLogs(job, target);
+
+    if (result) {
+      logs[job.uqID].success += log + "\n";
+    } else {
+      logs[job.uqID].failed += log + "\n";
+    }
   } else {
-    logs[job.uqID].error = "\n\n" + target + " : " + err;
-  }
-
-  obj[target] = {
-    error: err
-  };
-
-  var log;
-  if (target == 'server') {
-    log = "#### Integration Server Logs\n```\n" + err + "\n```\n";
-  } else {
-    log = grabLogs(job, target);
-  }
-
-  if (result) {
-    logs[job.uqID].success += log + "\n";
-  } else {
-    logs[job.uqID].failed += log + "\n";
+    logs[job.uqID].server = "#### Test Server Logs\n```\n" + err + "\n```\n";
   }
 };
 
@@ -331,9 +325,10 @@ exports.commitLog = function (uqID) {
   var failed = log.failed ? true : false;
   if (!failed) log.failed = "";
 
-  var str = "Status: \n```" + log.error + "\n```\n";
-  str += log.failed;
-  str += "\n\n" + log.success;
+  var str =  log.server + "\n\n"
+    + "Logs for system : \n```" + log.error + "\n```\n"
+    + log.failed
+    + "\n\n" + log.success;
 
   git.commitFile(log.job, "test_log", "Test " + uqID + " Logs", str, function (err, res, url) {
     if (err) {

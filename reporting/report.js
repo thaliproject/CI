@@ -18,34 +18,53 @@ var createBranch = function (branch_name, cb) {
     });
 };
 
-// this needs to be syched!
-// why ? we don't want any other test worker write in between
+var log_queue = [];
+
+var push_logs = function() {
+  if (log_queue.length==0) return;
+
+  var task = log_queue.shift();
+
+  logme("Creating Github Branch for " + task.bn, "red");
+
+  createBranch(task.bn, function (err, res) {
+    if (err) {
+      task.cb(err, res);
+      push_logs();
+      return;
+    }
+
+    if (task.sk !== -1)
+      fs.writeFileSync(process.cwd() + '/TestResults/' + task.fn, task.lg);
+
+    if(fs.existsSync(process.cwd() + "/TMP/" + task.bn + "/")) {
+      sync("mv " + process.cwd() + "/TMP/" + task.bn + "/* " + process.cwd() + '/TestResults/');
+      sync("rm -rf " + process.cwd() + "/TMP/" + task.bn + "/");
+    }
+
+    exec("cd " + process.cwd()
+      + "/reporting;chmod +x ./commit_logs.sh;./commit_logs.sh " + task.bn, eopts,
+      function (err, stdout, stderr) {
+        if (err) {
+          task.cb(err, stdout + "\n" + stderr);
+        } else {
+          task.cb(null);
+        }
+        push_logs();
+      });
+  });
+};
+
 exports.logIntoBranch = function (branch_name, filename, log, cb, skip) {
   if(skip && skip !== -1) {
-    fs.writeFileSync(process.cwd() + '/TestResults/' + filename, log);
+    sync("mkdir -p " + process.cwd() + "/TMP/" + branch_name + "/");
+    fs.writeFileSync(process.cwd() + '/TMP/' + branch_name + "/" + filename, log);
     cb(null);
     return;
   }
 
-  logme("Creating Github Gist", "red");
-
-  createBranch(branch_name, function (err, res) {
-    if (err) {
-      cb(err, res);
-      return;
-    }
-
-    if (skip !== -1)
-      fs.writeFileSync(process.cwd() + '/TestResults/' + filename, log);
-
-    exec("cd " + process.cwd()
-      + "/reporting;chmod +x ./commit_logs.sh;./commit_logs.sh " + branch_name, eopts,
-      function (err, stdout, stderr) {
-        if (err) {
-          cb(err, stdout + "\n" + stderr);
-        } else {
-          cb(null);
-        }
-      });
-  });
+  log_queue.push({bn:branch_name, fn:filename, lg:log, cb:cb, sk:skip});
+  if (log_queue.length == 1) {
+    push_logs();
+  }
 };

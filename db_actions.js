@@ -213,7 +213,7 @@ exports.addJob = function (user, repo, branch, opts, json) {
     prId: opts.prId, // prId or hookId
     prNumber: opts.prNumber, // null or prNumber
     sender: opts.sender, // sender user
-    title: opts.title, // repo or pr title
+    title: opts.title.replace(/[:\)\(#;+*]/g, "_"), // repo or pr title
     target: json.target, // all, ios, android
     priority: json.priority, // normal, asap, now
     compiled: false, // whether osx VM compiled the application file or not
