@@ -192,7 +192,7 @@ var uninstallApp = function (class_name, device_name) {
 };
 
 var stopAndroidApp = function (class_name, device_name, cb) {
-  var cmd = 'adb -s "'+device_name+'" shell pm uninstall -k '+class_name
+  var cmd = 'adb -s "'+device_name+'" shell pm uninstall '+class_name
     + ';adb -s "' + device_name + '" reboot';
 
   if (cb) {
