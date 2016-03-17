@@ -50,10 +50,14 @@ var checkIt = function(){
     console.log("Running 'jx install'");
     var out = jxcore.utils.cmdSync("cd " + __dirname + "; jx install");
     
-    if (out.exitCode != 0)
+    if (out.exitCode != 0) {
       console.log(out.out, "\n");
-    else
+      // If jx install fails, we can't run the server
+      // and without the server, the tests wouldn't run
+      process.exit(out.exitCode);
+    } else {
       console.log("Skipping the log for NPM since the exitCode was 0");
+    }
 
     obj.devices.cancel = 0;
     delete obj.devices.cancel;
