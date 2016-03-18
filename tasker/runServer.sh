@@ -26,9 +26,7 @@ ERROR_ABORT() {
 }
 ### END - JXcore Test Server   --------
 
-scp -r $1 pi@192.168.1.150:~/Test/
-ERROR_ABORT
-scp ______.js $2
-ERROR_ABORT
-ssh pi@192.168.1.150 'bash -s' < runServerRemote.sh ;ERROR_ABORT
-rm runServerRemote.sh
+scp -r $1 pi@192.168.1.150:~/Test/;ERROR_ABORT
+scp ______.js $2;ERROR_ABORT
+ssh pi@192.168.1.150 'bash -s' < runServerRemote.sh;ERROR_ABORT
+rm runServerRemote.sh;ERROR_ABORT

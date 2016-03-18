@@ -91,7 +91,7 @@ var grabLogcat = function (class_name, deviceId, deviceName, cb) {
   var _this = this;
 
   this.run = function () {
-    var child = spawn('adb', ['-s', _this.deviceId, 'logcat'], eopts);
+    var child = spawn('adb', ['-s', _this.deviceId, 'logcat', '-v', 'threadtime'], eopts);
     for (var i = 0; i < arrDevices.length; i++) {
       if (arrDevices[i].deviceId == _this.deviceId) {
         arrDevices[i].child = child;

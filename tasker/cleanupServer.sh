@@ -24,6 +24,6 @@ ERROR_ABORT() {
   fi
 }
 ### END - JXcore Test Server   --------
-sudo pkill jx
-sudo rm -rf ~/Test
-mkdir ~/Test
+sudo pkill jx;ERROR_ABORT
+sudo rm -rf ~/Test;ERROR_ABORT
+mkdir ~/Test;ERROR_ABORT

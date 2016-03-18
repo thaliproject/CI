@@ -25,5 +25,4 @@ ERROR_ABORT() {
 }
 ### END - JXcore Test Server   --------
 cd test/tasker;ERROR_ABORT
-sudo jx android.js {{JOB64}}
-ERROR_ABORT
+sudo jx android.js {{JOB64}};ERROR_ABORT
