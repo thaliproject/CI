@@ -11,3 +11,5 @@ TestResults/
 builder/builds/
 
 tasker/results/
+
+last_request.json

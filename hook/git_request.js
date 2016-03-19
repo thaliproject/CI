@@ -18,7 +18,7 @@ exports.OnRequest = function (req, res) {
     }
 
     try {
-      require('fs').writeFileSync('./aaa.json', JSON.stringify(json, null, 2));
+      require('fs').writeFileSync('last_request.json', JSON.stringify(json, null, 2));
     } catch(e_) {
       console.error("Couldn't write the JSON", e_);
     }
