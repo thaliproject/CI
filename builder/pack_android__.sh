@@ -25,8 +25,8 @@ ERROR_ABORT() {
 }
 ### END - JXcore Test Server   --------
 
-cd Github/testBuild
-jx -e "var fs=require('fs');var x = fs.existsSync('{{BUILD_PATH}}'); if (!x) console.error('Could not find the application path. Check build location on mobile_test.json');process.exit(x ? 0 : 1)"
-ERROR_ABORT
-cp {{BUILD_PATH}} android.apk
-jarsigner -verbose -sigalg SHA1withRSA -digestalg SHA1 -storepass asddsa -keypass asddsa -keystore my-release-key.keystore android.apk alias_name
+cd Github/testBuild;ERROR_ABORT
+jx -e "var fs=require('fs');var x = fs.existsSync('{{BUILD_PATH}}'); if (!x) console.error('Could not find the application path. Check build location on mobile_test.json');process.exit(x ? 0 : 1)";ERROR_ABORT
+cp {{BUILD_PATH}} android-unaligned.apk;ERROR_ABORT
+jarsigner -verbose -sigalg SHA1withRSA -digestalg SHA1 -storepass asddsa -keypass asddsa -keystore my-release-key.keystore android-unaligned.apk alias_name;ERROR_ABORT
+zipalign -v 4 android-unaligned.apk android.apk;ERROR_ABORT
