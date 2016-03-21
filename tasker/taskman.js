@@ -119,13 +119,13 @@ var runTask = function (job) {
         tester.report(job, 'server', err + stdout + stderr, false);
         if (taskCounter >= 0) {
           if (job.target == "all") {
-            iosChild.kill();
-            android.leave();
+            iosChild && iosChild.kill();
+            android && android.leave();
           } else {
             if (job.target == "ios") {
-              iosChild.kill();
+              iosChild && iosChild.kill();
             } else {
-              android.leave();
+              android && android.leave();
             }
           }
         }

@@ -45,6 +45,7 @@ var push_logs = function() {
     exec("cd " + process.cwd()
       + "/reporting;chmod +x ./commit_logs.sh;./commit_logs.sh " + task.bn, eopts,
       function (err, stdout, stderr) {
+        logme("Creating Github Branch for " + task.bn + " was " + (err ? "failed" : "successful"), "blue");
         if (err) {
           task.cb(err, stdout + "\n" + stderr);
         } else {

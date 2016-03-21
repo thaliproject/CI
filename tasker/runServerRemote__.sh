@@ -27,6 +27,5 @@ ERROR_ABORT() {
 ### END - JXcore Test Server   --------
 
 cd ~/Test/{{SERVER_LOCATION}};ERROR_ABORT
-
-sudo pkill jx;ERROR_ABORT
+sudo pkill jx
 sudo jx ______.js {{TARGET}};ERROR_ABORT
