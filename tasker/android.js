@@ -35,9 +35,11 @@ var getAndroidDevices = function () {
   if (res[0].indexOf("List of devices") == 0) {
     for (var i = 1; i < res.length; i++) {
       if (res[i].trim().length == 0) continue;
-      if (res[i].indexOf('offline') > 0) {
-        logme("Warning: Phone " + res[i] + " OFFLINE");
-        continue; // phone offline
+      if (res[i].indexOf('offline') > 0 ||
+          res[i].indexOf('unauthorized') > 0 ||
+          res[i].indexOf('no permissions') > 0) {
+        logme("Warning: Phone " + res[i] + " - CANNOT BE USED");
+        continue; // phone offline/unauthorized/no debug permissions
       }
       var dev = res[i].split('\t');
       devs.push(dev);
