@@ -71,11 +71,19 @@ var appCounter = 0;
 var testFailed = false;
 
 var deployAndroid = function (apk_path, device_name) {
-  var cmd = 'adb -s ' + device_name + ' install -r ' + apk_path;
+  var cmd = 'adb -s ' + device_name + ' install -r ' + apk_path + ';adb -s ' + device_name + ' shell pm list packages';
   var res = null;
+  var failureReasonIndex = -1;
+  var failureReason = "";
   exec(cmd, eopts, function (err, stderr, stdout) {
-    if (err) {
-      res = ("Error: problem deploying Android apk(" + apk_path + ") to device " + device_name + "\n" + err);
+    if (err || stderr.indexOf('com.test.thalitest') < 0) {
+      res = ("Error: problem deploying Android apk(" + apk_path + ") to device " + device_name + (err ? ("\n" + err) : ""));
+      failureReasonIndex = stderr.indexOf('Failure');
+      if (failureReasonIndex > -1) {
+        failureReason = stderr.substring(failureReasonIndex);
+        failureReason = failureReason.substring(0, failureReason.indexOf('\n'));
+        res += "\n" + failureReason;
+      }
     }
     jxcore.utils.continue();
   });
@@ -248,6 +256,41 @@ process.on('mobile_ready', function (deviceId, failed) {
 for (var i = 0; i < arrDevices.length; i++) {
   stopAndroidApp(job.config.csname.android, arrDevices[i].deviceId);
   uninstallApp(job.config.csname.android, arrDevices[i].deviceId);
+}
+
+var isDeviceBooted = function (device_name, timeout) {
+  var result = false;
+  setTimeout(function () {
+    var cmd = 'adb -s ' + device_name + ' shell getprop sys.boot_completed';
+    var res = sync(cmd);
+    result = res.exitCode === 0 && res.out.indexOf('1') === 0;
+    jxcore.utils.continue();
+  }, timeout);
+  jxcore.utils.pause();
+  return result;
+}
+
+//ensure all devices are up and running
+var devicesReady = true;
+for (var i = 0; i < arrDevices.length; i++) {
+  var bootCheckCount = 0;
+  var bootCheckTimeout = 0;
+  while (bootCheckCount < 3 && !isDeviceBooted(arrDevices[i].deviceId, bootCheckTimeout)) {
+    bootCheckCount += 1;
+    bootCheckTimeout = 15000;  // wait 15 seconds before next try
+  }
+  if (bootCheckCount === 3) {
+    devicesReady = false;
+    break;
+  }
+}
+if (!devicesReady) {
+  logme("\n\nDevices on this node are not ready.\n",
+        "Cancelling the test result on this node.\n");
+  if (job.config.serverScript && job.config.serverScript.length) {
+    jxcore.utils.cmdSync("curl 192.168.1.150:8060/cancel=1");
+  }
+  process.exit(0);
 }
 
 var retry_count=0;
