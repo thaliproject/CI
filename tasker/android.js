@@ -70,17 +70,17 @@ var builds = path.join(__dirname, "../builder/builds/" + job.uqID + "/build_andr
 var appCounter = 0;
 var testFailed = false;
 
-var deployAndroid = function (apk_path, device_name) {
+var deployAndroid = function (apk_path, device_name, class_name) {
   var cmd = 'adb -s ' + device_name + ' install -r ' + apk_path + ';adb -s ' + device_name + ' shell pm list packages';
   var res = null;
   var failureReasonIndex = -1;
   var failureReason = "";
-  exec(cmd, eopts, function (err, stderr, stdout) {
-    if (err || stderr.indexOf('com.test.thalitest') < 0) {
+  exec(cmd, eopts, function (err, stdout, stderr) {
+    if (err || stdout.indexOf(class_name) < 0) {
       res = ("Error: problem deploying Android apk(" + apk_path + ") to device " + device_name + (err ? ("\n" + err) : ""));
-      failureReasonIndex = stderr.indexOf('Failure');
+      failureReasonIndex = stdout.indexOf('Failure');
       if (failureReasonIndex > -1) {
-        failureReason = stderr.substring(failureReasonIndex);
+        failureReason = stdout.substring(failureReasonIndex);
         failureReason = failureReason.substring(0, failureReason.indexOf('\n'));
         res += "\n" + failureReason;
       }
@@ -296,7 +296,7 @@ if (!devicesReady) {
 var retry_count=0;
 // deploy apps
 for (var i = 0; i < arrDevices.length; i++) {
-  var res = deployAndroid(builds + "/android_" + nodeId + "_" + job.uqID + ".apk", arrDevices[i].deviceId);
+  var res = deployAndroid(builds + "/android_" + nodeId + "_" + job.uqID + ".apk", arrDevices[i].deviceId, job.config.csname.android);
   if (res && retry_count < 2) {
     retry_count++;
     i--;
