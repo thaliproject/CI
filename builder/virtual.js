@@ -232,13 +232,23 @@ var buildJob = function (job) {
         from: ["build__.sh"],
         to: ["build.sh"]
       });
-      cmds.push({
-        index: 0,
-        cmd: "chmod +x sign_droid.sh;./sign_droid.sh",
-        android: 1,
-        from: ["sign_droid__.sh", "pack_android__.sh"],
-        to: ["sign_droid.sh", "pack_android.sh"]
-      });
+      if (job.junitTestRunner) {
+        cmds.push({
+          index: 0,
+          cmd: "chmod +x copy_at.sh;./copy_at.sh",
+          android: 1,
+          from: ["copy_at__.sh", "pack_at__.sh"],
+          to: ["copy_at.sh", "pack_at.sh"]
+        });
+      } else {
+        cmds.push({
+          index: 0,
+          cmd: "chmod +x sign_droid.sh;./sign_droid.sh",
+          android: 1,
+          from: ["sign_droid__.sh", "pack_android__.sh"],
+          to: ["sign_droid.sh", "pack_android.sh"]
+        });
+      }
 
       if (single_scr) {
         cmds.push({

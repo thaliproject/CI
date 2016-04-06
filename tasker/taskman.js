@@ -149,6 +149,10 @@ var runTask = function (job) {
       logme("serverChild execution has failed", "red");
       cb();
     } else {
+      logme("Failure for testing purposes", "red");
+      cb();
+      return;
+
       if (job.target == "all" || job.target == "ios") {
         taskCounter++;
         itemTotal += 1;
