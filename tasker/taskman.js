@@ -149,6 +149,7 @@ var runTask = function (job) {
       logme("serverChild execution has failed", "red");
       cb();
     } else {
+      tester.report(job, "android", "test message", false);
       logme("Failure for testing purposes", "red");
       cb();
       return;
