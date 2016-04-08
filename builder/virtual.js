@@ -22,7 +22,7 @@ var vmChild = null;
 
 var stopVM = function (cb) {
   var vm = "/Applications/VMware\\ Fusion.app/Contents/Library/vmrun";
-  exec(vm + " stop ~/Desktop/Virtual\\ Machines/OSXDEV.vmwarevm/OSXDEV.vmx", eopts, function (err, out, stderr) {
+  exec(vm + " stop ~/Desktop/BackupVirtual/Virtual\\ Machines/OSXDEV.vmwarevm/OSXDEV.vmx", eopts, function (err, out, stderr) {
     if (err)
       logme("Error stopping VM", err, out, stderr, "red");
     cb(err, out, stderr);
@@ -31,7 +31,7 @@ var stopVM = function (cb) {
 
 var resetVM = function (cb) {
   var vm = "/Applications/VMware\\ Fusion.app/Contents/Library/vmrun";
-  vmChild = exec(vm + " revertToSnapshot ~/Desktop/Virtual\\ Machines/OSXDEV.vmwarevm/OSXDEV.vmx snapshot0", eopts, function (err, stdout, stderr) {
+  vmChild = exec(vm + " revertToSnapshot ~/Desktop/BackupVirtual/Virtual\\ Machines/OSXDEV.vmwarevm/OSXDEV.vmx snapshot1", eopts, function (err, stdout, stderr) {
     vmChild = null;
     if (err) {
       logme("Error: Something went terribly bad.. ", err + "\n" + stdout + "\n" + stderr, "red");
@@ -47,7 +47,7 @@ var resetVM = function (cb) {
     logme("VM: Revert snapshot", "green");
     // check queue if there is something start
 
-    vmChild = exec(vm + " start ~/Desktop/Virtual\\ Machines/OSXDEV.vmwarevm/OSXDEV.vmx", eopts, function (err, stdout, stderr) {
+    vmChild = exec(vm + " start ~/Desktop/BackupVirtual/Virtual\\ Machines/OSXDEV.vmwarevm/OSXDEV.vmx", eopts, function (err, stdout, stderr) {
       vmChild = null;
       if (err) {
         logme("Error: Something went terribly bad... ", err + "\n" + stdout + "\n" + stderr, "red");
@@ -330,7 +330,7 @@ exports.cancelIfActive = function (prId) {
     var vm = "/Applications/VMware\\ Fusion.app/Contents/Library/vmrun";
     builderReset = true;
 
-    exec(vm + " stop revertToSnapshot ~/Desktop/Virtual\\ Machines/OSXDEV.vmwarevm/OSXDEV.vmx", eopts, function () {
+    exec(vm + " stop revertToSnapshot ~/Desktop/BackupVirtual/Virtual\\ Machines/OSXDEV.vmwarevm/OSXDEV.vmx", eopts, function () {
       builderBusy = false;
       builderReset = false;
       activeJobId = 0;
