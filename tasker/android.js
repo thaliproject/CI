@@ -190,16 +190,16 @@ var runAndroidApp = function (class_name, deviceId, deviceName, cb) {
   lg.run();
 };
 
-var runAndroidInstrumentationTests = function (class_name, runner, deviceId, deviceName) {
-  var cmd = 'adb -s "' + deviceId + '" shell am instrument -w ' + class_name + "/" + runner;
+var runAndroidInstrumentationTests = function (class_name, runner, deviceIndex) {
+  var cmd = 'adb -s "' + arrDevices[deviceIndex].deviceId + '" shell am instrument -w ' + class_name + "/" + runner;
   exec(cmd, eopts, function (err, stdout, stderr) {
     if (err || stdout.indexOf("FAILURES!!!") > -1) {
       testFailed = true;
-      arrDevices[i].failed = failed;
-      logme("Error: problem running Android instrumentation tests (" + class_name + ") on device " + deviceName, "");
+      arrDevices[deviceIndex].failed = failed;
+      logme("Error: problem running Android instrumentation tests (" + class_name + ") on device " + arrDevices[deviceIndex].deviceName, "");
     }
-    logArray[deviceName] = [stdout, stderr];
-    arrDevices[i].finished = true;
+    logArray[arrDevices[deviceIndex].deviceName] = [stdout, stderr];
+    arrDevices[deviceIndex].finished = true;
     appCounter++;
     
     if (appCounter === arrDevices.length) {
@@ -355,7 +355,7 @@ if (job.config.serverScript && job.config.serverScript.length)
 
 for (var i = 0; i < arrDevices.length; i++) {
   if (job.config.instrumentationTestRunner) {
-    runAndroidInstrumentationTests(job.config.csname.android, job.config.instrumentationTestRunner, arrDevices[i].deviceId, arrDevices[i].deviceName);
+    runAndroidInstrumentationTests(job.config.csname.android, job.config.instrumentationTestRunner, i);
   } else {
     runAndroidApp(job.config.csname.android, arrDevices[i].deviceId, arrDevices[i].deviceName, callback);
   }
