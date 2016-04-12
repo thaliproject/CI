@@ -190,6 +190,20 @@ var runAndroidApp = function (class_name, deviceId, deviceName, cb) {
   lg.run();
 };
 
+var runAndroidInstrumentationTests = function (class_name, runner, deviceId, deviceName) {
+  var cmd = 'adb -s "' + deviceId + '" shell am instrument -w ' + class_name + "/" + runner;
+  var res = sync(cmd);
+  if (res.exitCode != 0) {
+    testFailed = true;
+    var str = "\n" + res.out;
+    if (str.length > 512) {
+      str = str.substr(0, 512);
+    }
+    logme("Error: problem running Android instrumentation tests (" + class_name + ") on device " + deviceName, str, "");
+  }
+  logArray[deviceName] = [res.out + ""];
+};
+
 var uninstallApp = function (class_name, device_name) {
   var cmd = 'sleep 1;adb -s "' + device_name + '" uninstall ' + class_name;
   var res = sync(cmd);
@@ -323,8 +337,28 @@ var callback = function (err) {
 if (job.config.serverScript && job.config.serverScript.length)
   jxcore.utils.cmdSync("curl 192.168.1.150:8060/droid=" + arrDevices.length);
 
-for (var i = 0; i < arrDevices.length; i++) {
-  runAndroidApp(job.config.csname.android, arrDevices[i].deviceId, arrDevices[i].deviceName, callback);
+if (job.config.instrumentationTestRunner) {
+  //run junit tests
+  for (var i = 0; i < arrDevices.length; i++) {
+    runAndroidInstrumentationTests(job.config.csname.android, job.config.instrumentationTestRunner, arrDevices[i].deviceId, arrDevices[i].deviceName);
+  }
+
+  try {
+    fs.writeFileSync(path.join(__dirname, "../../result_.json"), JSON.stringify(logArray));
+  } catch(e) {
+    logme("Could not write logs. Error:", e + "");
+  }
+
+  logme("Android instrumentation tests task is completed.", testFailed ? "[FAILED]" : "[SUCCESS]");
+  for (var i = 0; i < arrDevices.length; i++) {
+    stopAndroidApp(job.config.csname.android, arrDevices[i].deviceId);
+  }
+  process.exit(testFailed ? 1 : 0);
+
+} else {
+  for (var i = 0; i < arrDevices.length; i++) {
+    runAndroidApp(job.config.csname.android, arrDevices[i].deviceId, arrDevices[i].deviceName, callback);
+  }
 }
 
 function timeoutKill() {

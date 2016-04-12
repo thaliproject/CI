@@ -240,7 +240,7 @@ var buildJob = function (job) {
         to: ["sign_droid.sh", "pack_android.sh"]
       });
 
-      if (single_scr && !job.config.junitTestRunner) {
+      if (single_scr && !job.config.instrumentationTestRunner) {
         cmds.push({
           index: 0,
           cmd: "chmod +x sign_ios.sh; ./sign_ios.sh",
