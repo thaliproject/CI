@@ -193,7 +193,7 @@ var runAndroidApp = function (class_name, deviceId, deviceName, cb) {
 var runAndroidInstrumentationTests = function (class_name, runner, deviceId, deviceName) {
   var cmd = 'adb -s "' + deviceId + '" shell am instrument -w ' + class_name + "/" + runner;
   var res = sync(cmd);
-  if (res.exitCode != 0) {
+  if (res.exitCode != 0 || res.out.indexOf("FAILURES!!!") > -1) {
     testFailed = true;
     var str = "\n" + res.out;
     if (str.length > 512) {
