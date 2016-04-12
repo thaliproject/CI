@@ -195,7 +195,7 @@ var runAndroidInstrumentationTests = function (class_name, runner, deviceIndex) 
   exec(cmd, eopts, function (err, stdout, stderr) {
     if (err || stdout.indexOf("FAILURES!!!") > -1) {
       testFailed = true;
-      arrDevices[deviceIndex].failed = failed;
+      arrDevices[deviceIndex].failed = true;
       logme("Error: problem running Android instrumentation tests (" + class_name + ") on device " + arrDevices[deviceIndex].deviceName, "");
     }
     logArray[arrDevices[deviceIndex].deviceName] = [stdout, stderr];
