@@ -8,17 +8,19 @@ var tester = require('../internal/tester');
 
 var eopts = {
   encoding: 'utf8',
-  timeout: 1800000, // 30 min.
+  timeout: 1200000, // single command timeout - 20 min.
   maxBuffer: 1e9,
   killSignal: 'SIGTERM'
 };
 
 var builderBusy = false;
+var builderJob = null;
 var builderReset = false;
 var lastStartTime = 0;
 var activeJobId = 0;
 var cancelJobId = 0;
 var vmChild = null;
+var currentBuildCommand = null;
 
 var stopVM = function (cb) {
   var vm = "/Applications/VMware\\ Fusion.app/Contents/Library/vmrun";
@@ -128,6 +130,7 @@ var jobErrorReportAndRemove = function (job, err, stdout, stderr) {
 
   stopVM(function () {
     builderBusy = false;
+    builderJob = null;
     builderReset = false;
     activeJobId = 0;
   });
@@ -145,7 +148,8 @@ var runBuild = function (cmds, job, index, cb) {
   if (!cmd.sync)
     updateScripts(job, cmd);
 
-  exec("cd " + __dirname + ";" + cmd.cmd, eopts, function (err, stdout, stderr) {
+  currentBuildCommand = exec("cd " + __dirname + ";" + cmd.cmd, eopts, function (err, stdout, stderr) {
+    currentBuildCommand = null;
     if (cancelJobId == job.prId)
       return;
 
@@ -169,6 +173,7 @@ var runBuild = function (cmds, job, index, cb) {
 
         stopVM(function () {
           builderBusy = false;
+          builderJob = null;
           builderReset = false;
           activeJobId = 0;
         });
@@ -311,6 +316,7 @@ var buildJob = function (job) {
 
         stopVM(function () {
           builderBusy = false;
+          builderJob = null;
           builderReset = false;
         });
       });
@@ -332,6 +338,7 @@ exports.cancelIfActive = function (prId) {
 
     exec(vm + " stop revertToSnapshot ~/Desktop/BackupVirtual/Virtual\\ Machines/OSXDEV.vmwarevm/OSXDEV.vmx", eopts, function () {
       builderBusy = false;
+      builderJob = null;
       builderReset = false;
       activeJobId = 0;
     });
@@ -342,17 +349,26 @@ var vmTask = function () {
   if (builderBusy) {
     // a build operation can not take longer than 30 minutes
     if (Date.now() - lastStartTime > 1800000) {
-      if (builderReset)
+      if (currentBuildCommand) {
+        currentBuildCommand.kill(eopts.killSignal);
         return;
+      }
+      // give additional 5 minutes for build job cleanup 
+      if (Date.now() - lastStartTime > 2100000) {
+        if (builderReset) {
+          return;
+        }
 
-      builderReset = true;
-      stopVM(function () {
-        builderBusy = false;
-        builderReset = false;
-        activeJobId = 0;
-      });
+        builderReset = true;
+        db.removeJob(builderJob);
+        stopVM(function () {
+          builderBusy = false;
+          builderJob = null;
+          builderReset = false;
+          activeJobId = 0;
+        });
+      }
     }
-
     return;
   }
 
@@ -363,6 +379,7 @@ var vmTask = function () {
 
   // start VM from snapshot
   builderBusy = true;
+  builderJob = job;
   lastStartTime = Date.now();
 
   activeJobId = job.prId;
