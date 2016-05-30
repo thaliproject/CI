@@ -149,7 +149,6 @@ var runTask = function (job) {
       logme("serverChild execution has failed", "red");
       cb();
     } else {
-
       if (job.target == "all" || job.target == "ios") {
         taskCounter++;
         itemTotal += 1;
