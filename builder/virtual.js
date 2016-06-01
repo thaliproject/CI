@@ -33,7 +33,7 @@ var stopVM = function (cb) {
 
 var resetVM = function (cb) {
   var vm = "/Applications/VMware\\ Fusion.app/Contents/Library/vmrun";
-  vmChild = exec(vm + " revertToSnapshot ~/Desktop/Virtual\\ Machines/OSXDEV.vmwarevm/OSXDEV.vmx snapshot0", eopts, function (err, stdout, stderr) {
+  vmChild = exec(vm + " revertToSnapshot ~/Desktop/Virtual\\ Machines/OSXDEV.vmwarevm/OSXDEV.vmx snapshot1", eopts, function (err, stdout, stderr) {
     vmChild = null;
     if (err) {
       logme("Error: Something went terribly bad.. ", err + "\n" + stdout + "\n" + stderr, "red");
@@ -245,7 +245,7 @@ var buildJob = function (job) {
         to: ["sign_droid.sh", "pack_android.sh"]
       });
 
-      if (single_scr) {
+      if (single_scr && !job.config.instrumentationTestRunner) {
         cmds.push({
           index: 0,
           cmd: "chmod +x sign_ios.sh; ./sign_ios.sh",

@@ -190,6 +190,36 @@ var runAndroidApp = function (class_name, deviceId, deviceName, cb) {
   lg.run();
 };
 
+var runAndroidInstrumentationTests = function (class_name, runner, deviceIndex) {
+  var cmd = 'adb -s "' + arrDevices[deviceIndex].deviceId + '" shell am instrument -w ' + class_name + "/" + runner;
+  exec(cmd, eopts, function (err, stdout, stderr) {
+    if (err || stdout.indexOf("FAILURES!!!") > -1) {
+      testFailed = true;
+      arrDevices[deviceIndex].failed = true;
+      logme("Error: problem running Android instrumentation tests (" + class_name + ") on device " + arrDevices[deviceIndex].deviceName, "");
+    }
+    logArray[arrDevices[deviceIndex].deviceName] = [stdout, stderr];
+    arrDevices[deviceIndex].finished = true;
+    appCounter++;
+    
+    if (appCounter === arrDevices.length) {
+      process.logsOnDisk = true;
+      try {
+        fs.writeFileSync(path.join(__dirname, "../../result_.json"), JSON.stringify(logArray));
+      } catch(e) {
+        logme("Could not write logs. Error:", e + "");
+      }
+  
+      logme("Android instrumentation tests task is completed.", testFailed ? "[FAILED]" : "[SUCCESS]");
+      for (var i = 0; i < arrDevices.length; i++) {
+        stopAndroidApp(job.config.csname.android, arrDevices[i].deviceId);
+      }
+      process.exit(testFailed ? 1 : 0);
+    }
+  });
+  logcatIndex++;
+};
+
 var uninstallApp = function (class_name, device_name) {
   var cmd = 'sleep 1;adb -s "' + device_name + '" uninstall ' + class_name;
   var res = sync(cmd);
@@ -324,7 +354,11 @@ if (job.config.serverScript && job.config.serverScript.length)
   jxcore.utils.cmdSync("curl 192.168.1.150:8060/droid=" + arrDevices.length);
 
 for (var i = 0; i < arrDevices.length; i++) {
-  runAndroidApp(job.config.csname.android, arrDevices[i].deviceId, arrDevices[i].deviceName, callback);
+  if (job.config.instrumentationTestRunner) {
+    runAndroidInstrumentationTests(job.config.csname.android, job.config.instrumentationTestRunner, i);
+  } else {
+    runAndroidApp(job.config.csname.android, arrDevices[i].deviceId, arrDevices[i].deviceName, callback);
+  }
 }
 
 function timeoutKill() {
@@ -359,4 +393,5 @@ var interTimer = setInterval(function(){
       timeoutKill();
     }
   }
+  logcatCounter++;
 }, 1000);
