@@ -193,7 +193,7 @@ var runAndroidApp = function (class_name, deviceId, deviceName, cb) {
 var runAndroidInstrumentationTests = function (class_name, runner, deviceIndex) {
   var cmd = 'adb -s "' + arrDevices[deviceIndex].deviceId + '" shell am instrument -w ' + class_name + "/" + runner;
   exec(cmd, eopts, function (err, stdout, stderr) {
-    if (err || stdout.indexOf("FAILURES!!!") > -1) {
+    if (err || stdout.indexOf("FAILURES!!!") > -1 || stdout.indexOf("INSTRUMENTATION_CODE: 0") > -1) {
       testFailed = true;
       arrDevices[deviceIndex].failed = true;
       logme("Error: problem running Android instrumentation tests (" + class_name + ") on device " + arrDevices[deviceIndex].deviceName, "");
@@ -304,12 +304,13 @@ var isDeviceBooted = function (device_name, timeout) {
 var devicesReady = true;
 for (var i = 0; i < arrDevices.length; i++) {
   var bootCheckCount = 0;
+  var bootMaxCheckCount = 10;
   var bootCheckTimeout = 0;
-  while (bootCheckCount < 3 && !isDeviceBooted(arrDevices[i].deviceId, bootCheckTimeout)) {
+  while (bootCheckCount < bootMaxCheckCount && !isDeviceBooted(arrDevices[i].deviceId, bootCheckTimeout)) {
     bootCheckCount += 1;
-    bootCheckTimeout = 15000;  // wait 15 seconds before next try
+    bootCheckTimeout = 10000;  // wait 10 seconds before next try
   }
-  if (bootCheckCount === 3) {
+  if (bootCheckCount === bootMaxCheckCount) {
     devicesReady = false;
     break;
   }
@@ -368,6 +369,9 @@ function timeoutKill() {
     var dev = arrDevices[i];
     if (dev.finished) continue;
 
+    if (!logArray[dev.deviceName]) {
+      logArray[dev.deviceName] = [];
+    }
     logArray[dev.deviceName].push("TIME-OUT KILL (timeout was " + timeout + "ms)");
     stopAndroidApp(job.config.csname.android, dev.deviceId);
     if (dev.child) {
