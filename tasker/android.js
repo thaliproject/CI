@@ -48,17 +48,21 @@ var getAndroidDevices = function () {
 
   if (devs.length == 0) {
     logme("Error: No Android device found.", "");
-    process.exit(1)
+    process.exit(1);
     return;
   }
 
-  var arr = [];
+  var release, man, pro,
+      arr = [];
   for (var i = 0; i < devs.length; i++) {
-    var man = sync("adb -s " + devs[i][0] + " shell getprop ro.product.manufacturer");
-    var pro = sync("adb -s " + devs[i][0] + " shell getprop ro.product.model")
+    man = sync("adb -s " + devs[i][0] + " shell getprop ro.product.manufacturer");
+    pro = sync("adb -s " + devs[i][0] + " shell getprop ro.product.model");
+    release = sync("adb -s " + devs[i][0] + " shell getprop ro.build.version.release");
+
     arr.push({
       deviceId: devs[i][0],
-      deviceName: man.out.replace("\n", "").trim() + "-" + pro.out.replace("\n", "").trim()
+      deviceName: man.out.replace("\n", "").trim() + "-" + pro.out.replace("\n", "").trim(),
+      release: release.out.replace("\n", "").trim()
     })
   }
 
@@ -70,8 +74,16 @@ var builds = path.join(__dirname, "../builder/builds/" + job.uqID + "/build_andr
 var appCounter = 0;
 var testFailed = false;
 
-var deployAndroid = function (apk_path, device_name, class_name) {
-  var cmd = 'adb -s ' + device_name + ' install -r ' + apk_path + ';adb -s ' + device_name + ' shell pm list packages';
+var deployAndroid = function (apk_path, device_name, class_name, isMarshmallow) {
+  var grantPermission = '';
+  if (isMarshmallow) {
+    grantPermission = ';adb -s ' + device_name + ' shell pm grant com.test.thalitest android.permission.ACCESS_COARSE_LOCATION';
+    logme("\n\n Marshmallow device. Granting ACCESS_COARSE_LOCATION permission");
+  }
+
+  var cmd = 'adb -s ' + device_name + ' install -r ' + apk_path +
+      ';adb -s ' + device_name + ' shell pm list packages' + grantPermission;
+
   var res = null;
   var failureReasonIndex = -1;
   var failureReason = "";
@@ -87,6 +99,7 @@ var deployAndroid = function (apk_path, device_name, class_name) {
     }
     jxcore.utils.continue();
   });
+
   jxcore.utils.jump();
 
   return res;
@@ -327,7 +340,8 @@ if (!devicesReady) {
 var retry_count=0;
 // deploy apps
 for (var i = 0; i < arrDevices.length; i++) {
-  var res = deployAndroid(builds + "/android_" + nodeId + "_" + job.uqID + ".apk", arrDevices[i].deviceId, job.config.csname.android);
+  var isMarshmallow = arrDevices[i].release.substr(0, 1) > 5;
+  var res = deployAndroid(builds + "/android_" + nodeId + "_" + job.uqID + ".apk", arrDevices[i].deviceId, job.config.csname.android, isMarshmallow);
   if (res && retry_count < 2) {
     retry_count++;
     i--;
