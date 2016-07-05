@@ -52,17 +52,19 @@ var getAndroidDevices = function () {
     return;
   }
 
-  var release, man, pro,
+  var release, man, pro, sdkVersion,
       arr = [];
   for (var i = 0; i < devs.length; i++) {
     man = sync("adb -s " + devs[i][0] + " shell getprop ro.product.manufacturer");
     pro = sync("adb -s " + devs[i][0] + " shell getprop ro.product.model");
     release = sync("adb -s " + devs[i][0] + " shell getprop ro.build.version.release");
+    sdkVersion = sync("adb -s " + devs[i][0] + " shell getprop ro.build.version.sdk");
 
     arr.push({
       deviceId: devs[i][0],
       deviceName: man.out.replace("\n", "").trim() + "-" + pro.out.replace("\n", "").trim(),
-      release: release.out.replace("\n", "").trim()
+      release: release.out.replace("\n", "").trim(),
+      sdkVersion: sdkVersion.out.replace("\n", "").trim()
     })
   }
 
@@ -311,7 +313,7 @@ var isDeviceBooted = function (device_name, timeout) {
   }, timeout);
   jxcore.utils.pause();
   return result;
-}
+};
 
 //ensure all devices are up and running
 var devicesReady = true;
@@ -340,7 +342,7 @@ if (!devicesReady) {
 var retry_count=0;
 // deploy apps
 for (var i = 0; i < arrDevices.length; i++) {
-  var isMarshmallow = arrDevices[i].release.substr(0, 1) > 5;
+  var isMarshmallow = arrDevices[i].sdkVersion > 22;
   var res = deployAndroid(builds + "/android_" + nodeId + "_" + job.uqID + ".apk", arrDevices[i].deviceId, job.config.csname.android, isMarshmallow);
   if (res && retry_count < 2) {
     retry_count++;
