@@ -52,18 +52,16 @@ var getAndroidDevices = function () {
     return;
   }
 
-  var release, man, pro, sdkVersion,
+  var man, pro, sdkVersion,
       arr = [];
   for (var i = 0; i < devs.length; i++) {
     man = sync("adb -s " + devs[i][0] + " shell getprop ro.product.manufacturer");
     pro = sync("adb -s " + devs[i][0] + " shell getprop ro.product.model");
-    release = sync("adb -s " + devs[i][0] + " shell getprop ro.build.version.release");
     sdkVersion = sync("adb -s " + devs[i][0] + " shell getprop ro.build.version.sdk");
 
     arr.push({
       deviceId: devs[i][0],
       deviceName: man.out.replace("\n", "").trim() + "-" + pro.out.replace("\n", "").trim(),
-      release: release.out.replace("\n", "").trim(),
       sdkVersion: sdkVersion.out.replace("\n", "").trim()
     })
   }
@@ -80,7 +78,7 @@ var deployAndroid = function (apk_path, device_name, class_name, isMarshmallow) 
   var grantPermission = '';
   if (isMarshmallow) {
     grantPermission = ';adb -s ' + device_name + ' shell pm grant com.test.thalitest android.permission.ACCESS_COARSE_LOCATION';
-    logme("\n\n Marshmallow device. Granting ACCESS_COARSE_LOCATION permission");
+    logme("\nMarshmallow device. Granting ACCESS_COARSE_LOCATION permission.");
   }
 
   var cmd = 'adb -s ' + device_name + ' install -r ' + apk_path +
