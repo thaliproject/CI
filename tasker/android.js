@@ -23,6 +23,7 @@ var nodeId = 0;
 // out: [ [ '8a09fc3c', 'device' ] ]
 var getAndroidDevices = function () {
   var res = sync("adb devices");
+  var i;
 
   if (res.exitCode != 0) {
     logme("Error: getAndroidDevices failed", res.out);
@@ -33,7 +34,7 @@ var getAndroidDevices = function () {
   var devs = [];
   res = res.out.split('\n');
   if (res[0].indexOf("List of devices") == 0) {
-    for (var i = 1; i < res.length; i++) {
+    for (i = 1; i < res.length; i++) {
       if (res[i].trim().length == 0) continue;
       if (res[i].indexOf('offline') > 0 ||
           res[i].indexOf('unauthorized') > 0 ||
@@ -52,21 +53,21 @@ var getAndroidDevices = function () {
     return;
   }
 
-  var man, pro, sdkVersion,
-      arr = [];
-  for (var i = 0; i < devs.length; i++) {
-    man = sync("adb -s " + devs[i][0] + " shell getprop ro.product.manufacturer");
-    pro = sync("adb -s " + devs[i][0] + " shell getprop ro.product.model");
+  var manufacturer, model, sdkVersion,
+      devices = [];
+  for (i = 0; i < devs.length; i++) {
+    manufacturer = sync("adb -s " + devs[i][0] + " shell getprop ro.product.manufacturer");
+    model = sync("adb -s " + devs[i][0] + " shell getprop ro.product.model");
     sdkVersion = sync("adb -s " + devs[i][0] + " shell getprop ro.build.version.sdk");
 
-    arr.push({
+    devices.push({
       deviceId: devs[i][0],
-      deviceName: man.out.replace("\n", "").trim() + "-" + pro.out.replace("\n", "").trim(),
+      deviceName: manufacturer.out.replace("\n", "").trim() + "-" + model.out.replace("\n", "").trim(),
       sdkVersion: sdkVersion.out.replace("\n", "").trim()
     })
   }
 
-  return arr;
+  return devices;
 };
 
 var arrDevices = getAndroidDevices();
