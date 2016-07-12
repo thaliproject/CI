@@ -23,6 +23,7 @@ var nodeId = 0;
 // out: [ [ '8a09fc3c', 'device' ] ]
 var getAndroidDevices = function () {
   var res = sync("adb devices");
+  var i;
 
   if (res.exitCode != 0) {
     logme("Error: getAndroidDevices failed", res.out);
@@ -33,7 +34,7 @@ var getAndroidDevices = function () {
   var devs = [];
   res = res.out.split('\n');
   if (res[0].indexOf("List of devices") == 0) {
-    for (var i = 1; i < res.length; i++) {
+    for (i = 1; i < res.length; i++) {
       if (res[i].trim().length == 0) continue;
       if (res[i].indexOf('offline') > 0 ||
           res[i].indexOf('unauthorized') > 0 ||
@@ -48,21 +49,25 @@ var getAndroidDevices = function () {
 
   if (devs.length == 0) {
     logme("Error: No Android device found.", "");
-    process.exit(1)
+    process.exit(1);
     return;
   }
 
-  var arr = [];
-  for (var i = 0; i < devs.length; i++) {
-    var man = sync("adb -s " + devs[i][0] + " shell getprop ro.product.manufacturer");
-    var pro = sync("adb -s " + devs[i][0] + " shell getprop ro.product.model")
-    arr.push({
+  var manufacturer, model, sdkVersion,
+      devices = [];
+  for (i = 0; i < devs.length; i++) {
+    manufacturer = sync("adb -s " + devs[i][0] + " shell getprop ro.product.manufacturer");
+    model = sync("adb -s " + devs[i][0] + " shell getprop ro.product.model");
+    sdkVersion = sync("adb -s " + devs[i][0] + " shell getprop ro.build.version.sdk");
+
+    devices.push({
       deviceId: devs[i][0],
-      deviceName: man.out.replace("\n", "").trim() + "-" + pro.out.replace("\n", "").trim()
+      deviceName: manufacturer.out.replace("\n", "").trim() + "-" + model.out.replace("\n", "").trim(),
+      sdkVersion: sdkVersion.out.replace("\n", "").trim()
     })
   }
 
-  return arr;
+  return devices;
 };
 
 var arrDevices = getAndroidDevices();
@@ -70,8 +75,16 @@ var builds = path.join(__dirname, "../builder/builds/" + job.uqID + "/build_andr
 var appCounter = 0;
 var testFailed = false;
 
-var deployAndroid = function (apk_path, device_name, class_name) {
-  var cmd = 'adb -s ' + device_name + ' install -r ' + apk_path + ';adb -s ' + device_name + ' shell pm list packages';
+var deployAndroid = function (apk_path, device_name, class_name, isMarshmallow) {
+  var grantPermission = '';
+  if (isMarshmallow) {
+    grantPermission = ';adb -s ' + device_name + ' shell pm grant com.test.thalitest android.permission.ACCESS_COARSE_LOCATION';
+    logme("\nMarshmallow device. Granting ACCESS_COARSE_LOCATION permission.");
+  }
+
+  var cmd = 'adb -s ' + device_name + ' install -r ' + apk_path +
+      ';adb -s ' + device_name + ' shell pm list packages' + grantPermission;
+
   var res = null;
   var failureReasonIndex = -1;
   var failureReason = "";
@@ -87,6 +100,7 @@ var deployAndroid = function (apk_path, device_name, class_name) {
     }
     jxcore.utils.continue();
   });
+
   jxcore.utils.jump();
 
   return res;
@@ -298,7 +312,7 @@ var isDeviceBooted = function (device_name, timeout) {
   }, timeout);
   jxcore.utils.pause();
   return result;
-}
+};
 
 //ensure all devices are up and running
 var devicesReady = true;
@@ -327,7 +341,8 @@ if (!devicesReady) {
 var retry_count=0;
 // deploy apps
 for (var i = 0; i < arrDevices.length; i++) {
-  var res = deployAndroid(builds + "/android_" + nodeId + "_" + job.uqID + ".apk", arrDevices[i].deviceId, job.config.csname.android);
+  var isMarshmallow = arrDevices[i].sdkVersion > 22;
+  var res = deployAndroid(builds + "/android_" + nodeId + "_" + job.uqID + ".apk", arrDevices[i].deviceId, job.config.csname.android, isMarshmallow);
   if (res && retry_count < 2) {
     retry_count++;
     i--;
