@@ -14,5 +14,16 @@ global.logme = function () {
     return;
   }
 
+  var currentDate = new Date();
+  var dateTime = currentDate.getDate() + "/"
+               + (currentDate.getMonth() + 1) + "/"
+               + currentDate.getFullYear() + "@"
+               + (currentDate.getHours() < 10 ? "0" : "")
+               + currentDate.getHours() + ":"
+               + (currentDate.getMinutes() < 10 ? "0" : "")
+               + currentDate.getMinutes() + ":"
+               + (currentDate.getSeconds() < 10 ? "0" : "")
+               + currentDate.getSeconds() + " ";
+  util.print(dateTime);
   jxcore.utils.console.log.apply(null, arguments);
 };
