@@ -2,7 +2,7 @@
 
 #### Installation
 
-Download the latest JXcore from [jxcore.com/downloads](http://jxcore.com/downloads)
+Download the latest JXcore from [jxcore.azureedge.net/jxcore/0312/release/jx_osx64v8.zip](http://jxcore.azureedge.net/jxcore/0312/release/jx_osx64v8.zip)
 
 ```
 git clone https://github.com/thaliproject/ThaliCI
