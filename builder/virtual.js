@@ -90,7 +90,6 @@ var updateScripts = function (job, cmd) {
     var scr = job.config.build.substr ? job.config.build : (cmd.ios ? job.config.build.ios : job.config.build.android);
     data = data.replace("{{BUILD_SCRIPT_PATH}}", scr);
     data = data.replace("{{BUILD_SCRIPT}}", scr);
-    data = data.replace("{{BUILD_SCRIPT_PARAMS}}", job.config.buildParams ? job.config.buildParams : "");
 
     scr = job.config.binary_path.substr ? job.config.binary_path : (cmd.ios ? job.config.binary_path.ios : job.config.binary_path.android);
     data = data.replace("{{BUILD_PATH}}", scr).replace("{{BUILD_PATH}}", scr);
