@@ -87,6 +87,12 @@ the provisioning profile, and entitlements to ensure that the installed applicat
 For details, see the 'App Distribution Guide', section
 [Maintaining Your Signing Identities and Certificates](https://developer.apple.com/library/ios/documentation/IDEs/Conceptual/AppDistributionGuide/MaintainingCertificates/MaintainingCertificates.html).
 
+_Note:_ Make sure that the private key used to sign the application has proper access:
+- Go to Keychain, select System keychain and expand the certificate node (iPhone Developer).
+- Right click on the private key and choose Get Info. On the Access Control tab choose _Allow all applications to access this item_.
+
+When adding certificates using Xcode, it may happen that the private keys are stored both in the _login_ and in the _System_ keychains. Make sure that the key used for signing is stored only in the _System_ keychain, as the build is executed via the SSH with no access to the UI. Inproper setting will cause the signing to fail with an error "User interaction is not allowed."
+
 ##### Other settings
 
 1. Update the bashrc and .bash_profile with:
