@@ -22,7 +22,7 @@ var builds = path.join(__dirname, "../builder/builds");
 var arrDevices = [];
 // out: [ {name, deviceId} ]
 var getIOSDevices = function (cb) {
-  exec("ios-deploy -c -t 1", eopts, function (err, stdout, stderr) {
+  exec("ios-deploy --detect --timeout 1", eopts, function (err, stdout, stderr) {
     if (err) {
       logme("Error: ios-deploy", err, stdout, stderr, "");
       cb(err);
@@ -43,11 +43,18 @@ var getIOSDevices = function (cb) {
 
         if (n1 >= 0) {
           var name = str.substr(0, n1 + 1).trim();
+
           var index = name.indexOf("'");
           if (index >= 0) {
             name = name.substr(index + 1).replace("'", "").trim();
           }
           var deviceId = str.substr(n1 + 1, str.length - (n1 + 1)).trim().replace("(", "").replace(")", "");
+
+          logme('ios: device name: ' + name, ', device identifier: ', deviceId);
+          if (deviceId.indexOf('\'') !== -1) {
+            logme('ios: unexpected device identifier ', deviceId);
+          }
+
           arrDevices.push({name: name, deviceId: deviceId});
         }
       }
@@ -273,4 +280,3 @@ exports.test(job, function (isFailed) {
     process.exit(0);
   }
 });
-
