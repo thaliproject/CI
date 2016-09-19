@@ -82,6 +82,8 @@ var deployAndroid = function (apk_path, device_name, class_name, isMarshmallow) 
     logme("\nMarshmallow device. Granting ACCESS_COARSE_LOCATION permission.");
   }
 
+  logme('\nDeploying to android ' + device_name);
+
   var cmd = 'adb -s ' + device_name + ' install -r ' + apk_path +
       ';adb -s ' + device_name + ' shell pm list packages' + grantPermission;
 
@@ -97,6 +99,8 @@ var deployAndroid = function (apk_path, device_name, class_name, isMarshmallow) 
         failureReason = failureReason.substring(0, failureReason.indexOf('\n'));
         res += "\n" + failureReason;
       }
+    } else {
+      logme('\nApp was succesfully deployed to ' + device_name);
     }
     jxcore.utils.continue();
   });
@@ -140,7 +144,12 @@ var grabLogcat = function (class_name, deviceId, deviceName, cb) {
         if (data.indexOf("****TEST_LOGGER:[PROCESS_ON_EXIT_FAILED]****") >= 0)
           _this.child.failed = true;
 
-        logme("STOP log received from ", _this.deviceId, "Test has ", _this.child.failed ? "FAILED" : "SUCCEEDED");
+        if (_this.child.failed) {
+          logme("STOP log received from " + _this.deviceId + "\nTest has FAILED");
+        } else {
+          logme("STOP log received from " + _this.deviceId + "\nTest has SUCCEED");
+        }
+        
         _this.killing = true;
         stopAndroidApp(_this.class_name, _this.deviceId, function () {
           _this.child.kill();
@@ -166,7 +175,13 @@ var grabLogcat = function (class_name, deviceId, deviceName, cb) {
       } else {
         _this.child.failed = true;
         _this.cb("Unexpected exit on device " + _this.deviceId + " app:" + _this.class_name + " code:" + code);
-        logme('child process exited with code ' + code, "on device", _this.deviceId, "");
+        
+        logme('child process exited with code ' + code, "on device", _this.deviceId, "");  
+        //logme('child process exited with code ' + code, "on device", _this.deviceId, "");
+
+        //for (var i = 0; i < arrDevices.length; i++) {
+        // stopAndroidApp(job.config.csname.android, arrDevices[i].deviceId);
+        //}     
       }
       process.emit('mobile_ready', _this.deviceId, _this.child.failed);
     });
@@ -190,6 +205,7 @@ var runAndroidApp = function (class_name, deviceId, deviceName, cb) {
         var str = "\n" + res.out;
         if (str.length > 512) str = str.substr(0, 512);
         logme("Error: problem running Android apk(" + class_name + ") on device " + deviceName, str, "");
+        //logme("Error: problem running Android apk(" + class_name + ") on device " + deviceName, str, "");
         if (_this) _this.child.kill();
         cb(true, null);
         return false;
@@ -238,6 +254,7 @@ var uninstallApp = function (class_name, device_name) {
   var cmd = 'sleep 1;adb -s "' + device_name + '" uninstall ' + class_name;
   var res = sync(cmd);
   if (res.exitCode != 0) {
+    //logme("Error: problem stopping Android apk(" + class_name + ") to device " + device_name, res.out, "");
     logme("Error: problem stopping Android apk(" + class_name + ") to device " + device_name, res.out, "");
     return false;
   }
@@ -264,6 +281,7 @@ process.on('SIGTERM', function(){
     fs.writeFileSync(path.join(__dirname, "../../result_.json"), JSON.stringify(logArray));
   } catch(e) {
     logme("Could not write logs. Error:", e + "");
+    //logme("Could not write logs. Error:", e + "");
   }
   process.exit(1);
 });
@@ -287,8 +305,10 @@ process.on('mobile_ready', function (deviceId, failed) {
     fs.writeFileSync(path.join(__dirname, "../../result_.json"), JSON.stringify(logArray));
   } catch(e) {
     logme("Could not write logs. Error:", e + "");
+    //logme("Could not write logs. Error:", e + "");
   }
   logme("Android task is completed.", testFailed ? "[FAILED]" : "[SUCCESS]");
+  //logme("Android task is completed.", testFailed ? "[FAILED]" : "[SUCCESS]");
   for (var i = 0; i < arrDevices.length; i++) {
     stopAndroidApp(job.config.csname.android, arrDevices[i].deviceId);
   }
@@ -342,6 +362,8 @@ var retry_count=0;
 // deploy apps
 for (var i = 0; i < arrDevices.length; i++) {
   var isMarshmallow = arrDevices[i].sdkVersion > 22;
+  logme('\nTrying to deploy app to android: ' + arrDevices[i].deviceId);
+
   var res = deployAndroid(builds + "/android_" + nodeId + "_" + job.uqID + ".apk", arrDevices[i].deviceId, job.config.csname.android, isMarshmallow);
   if (res && retry_count < 2) {
     retry_count++;
@@ -373,6 +395,7 @@ for (var i = 0; i < arrDevices.length; i++) {
   if (job.config.instrumentationTestRunner) {
     runAndroidInstrumentationTests(job.config.csname.android, job.config.instrumentationTestRunner, i);
   } else {
+    logme('\nTrying to start application ThaliTest on ' + arrDevices[i].deviceId);
     runAndroidApp(job.config.csname.android, arrDevices[i].deviceId, arrDevices[i].deviceName, callback);
   }
 }
@@ -380,6 +403,7 @@ for (var i = 0; i < arrDevices.length; i++) {
 function timeoutKill() {
   // shut down the test;
   logme("TIMEOUT REACHED. KILLING the APPS");
+  //logme("TIMEOUT REACHED. KILLING the APPS");
   for (var i = 0; i < arrDevices.length; i++) {
     var dev = arrDevices[i];
     if (dev.finished) continue;
