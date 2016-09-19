@@ -403,7 +403,6 @@ for (var i = 0; i < arrDevices.length; i++) {
 function timeoutKill() {
   // shut down the test;
   logme("TIMEOUT REACHED. KILLING the APPS");
-  //logme("TIMEOUT REACHED. KILLING the APPS");
   for (var i = 0; i < arrDevices.length; i++) {
     var dev = arrDevices[i];
     if (dev.finished) continue;
