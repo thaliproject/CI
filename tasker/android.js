@@ -198,7 +198,7 @@ var runAndroidApp = function (class_name, deviceId, deviceName, cb) {
         var str = "\n" + res.out;
         if (str.length > 512) str = str.substr(0, 512);
         logme("Error: problem running Android apk(" + class_name + ") on device " + deviceName, str, "");
-        //logme("Error: problem running Android apk(" + class_name + ") on device " + deviceName, str, "");
+
         if (_this) _this.child.kill();
         cb(true, null);
         return false;
