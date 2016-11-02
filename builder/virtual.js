@@ -89,7 +89,13 @@ var updateScripts = function (job, cmd) {
 
     var scr = job.config.build.substr ? job.config.build : (cmd.ios ? job.config.build.ios : job.config.build.android);
     data = data.replace("{{BUILD_SCRIPT_PATH}}", scr);
-    data = data.replace("{{BUILD_SCRIPT}}", scr);
+    
+    if (job.test) {
+      logme("Running CI in test mode", "green");
+      data = data.replace("{{BUILD_SCRIPT}}", scr + " true");
+    } else {
+      data = data.replace("{{BUILD_SCRIPT}}", scr);
+    }
 
     scr = job.config.binary_path.substr ? job.config.binary_path : (cmd.ios ? job.config.binary_path.ios : job.config.binary_path.android);
     data = data.replace("{{BUILD_PATH}}", scr).replace("{{BUILD_PATH}}", scr);
@@ -245,7 +251,7 @@ var buildJob = function (job) {
         to: ["sign_droid.sh", "pack_android.sh"]
       });
 
-      if (single_scr && job.target == "all") {
+      if (single_scr && (job.target == "all")) {
         cmds.push({
           index: 0,
           cmd: "chmod +x sign_ios.sh; ./sign_ios.sh",

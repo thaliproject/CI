@@ -27,7 +27,7 @@ ERROR_ABORT() {
 
 cd Github;ERROR_ABORT
 rm -rf testBuild;ERROR_ABORT
-cp -r testBuildOrg/ testBuild;ERROR_ABORT
+cp -r testBuildOrg/ testBuild;
 cd testBuild;ERROR_ABORT
 chmod +x {{BUILD_SCRIPT_PATH}};ERROR_ABORT
 {{BUILD_SCRIPT}};ERROR_ABORT
