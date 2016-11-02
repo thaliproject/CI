@@ -68,6 +68,5 @@ db.getGithubUser(function (data) {
     }
 
   }).listen(8080);
-
   logme("Github WebHook Server Started on 8080", "green");
 });
