@@ -24,10 +24,10 @@ var vmChild = null;
 var currentBuildCommand = null;
 
 var stopVM = function (cb) {
-  var vm = "/Applications/VMware\\ Fusion.app/Contents/Library/vmrun";
-  exec(vm + " stop ~/Desktop/Virtual\\ Machines/OSXDEV.vmwarevm/OSXDEV.vmx", eopts, function (err, out, stderr) {
+  var vm = '/Applications/VMware\\ Fusion.app/Contents/Library/vmrun';
+  exec(vm + ' stop ~/Desktop/Virtual\\ Machines/OSXDEV.vmwarevm/OSXDEV.vmx', eopts, function (err, out, stderr) {
     if (err)
-      logme("Error stopping VM", err, out, stderr, "red");
+      logme('Error stopping VM', err, out, stderr, 'red');
     cb(err, out, stderr);
   });
 };
@@ -73,36 +73,45 @@ var updateScripts = function (job, cmd) {
   var arrFrom = cmd.from;
   var arrTo = cmd.to;
 
-  var serverScript = "";
+  var serverScript = '';
   if (job.config.serverScript && job.config.serverScript.length) {
-    serverScript = "mkdir -p builds/server_" + job.uqID + "/" + job.config.serverScript + "/;\n";
+    serverScript = 'mkdir -p builds/server_' + job.uqID + '/' +
+      job.config.serverScript + '/;\n';
 
-    var target_loc = path.join("builds/server_" + job.uqID + "/" + job.config.serverScript, "../");
-    serverScript += "scp -r thali@192.168.1.20:~/Github/testBuild/" + job.config.serverScript + " " + target_loc + " ;"
+    var targetLocation = path.join('builds/server_' + job.uqID + '/' +
+      job.config.serverScript, '../');
+    serverScript += 'scp -r thali@192.168.1.20:~/Github/testBuild/' +
+      job.config.serverScript + ' ' + targetLocation + ' ;';
   }
 
+  var scr = job.config.build.substr ? job.config.build :
+    (cmd.ios ? job.config.build.ios : job.config.build.android);
+  var replacements = {
+    REPOSITORY: job.repo,
+    BRANCH_NAME: job.commitIndex ? job.commitIndex : job.branch,
+    TARGET_BRANCH: job.targetBranch,
+    BUILD_SCRIPT_PATH: scr,
+    BUILD_SCRIPT: scr,
+    BUILD_PATH: job.config.binary_path.substr ? job.config.binary_path :
+      (cmd.ios ? job.config.binary_path.ios : job.config.binary_path.android),
+    BUILD_INDEX: cmd.index,
+    BUILD_PR_ID: job.uqID,
+    CENTRALSCRIPTCOPY: serverScript
+  };
+
   for (var i = 0; i < arrFrom.length; i++) {
-    var data = fs.readFileSync(__dirname + "/" + arrFrom[i]) + "";
-    data = data.replace("{{REPOSITORY}}", job.repo).replace("{{REPOSITORY}}", job.repo);
+    var data = fs.readFileSync(__dirname + '/' + arrFrom[i]) + '';
 
-    data = data.replace("{{BRANCH_NAME}}", job.commitIndex? job.commitIndex : job.branch);
-    data = data.replace("{{TARGET_BRANCH}}", job.targetBranch).replace("{{TARGET_BRANCH}}", job.targetBranch);
+    data = data.replace(/\{\{(\w+?)\}\}/g, function (_, property) {
+      var replacement = replacements[property];
+      if (replacement !== null) {
+        return replacement;
+      } else {
+        return '{{' + property + '}}';
+      }
+    });
 
-    var scr = job.config.build.substr ? job.config.build : (cmd.ios ? job.config.build.ios : job.config.build.android);
-    data = data.replace("{{BUILD_SCRIPT_PATH}}", scr);
-    data = data.replace("{{BUILD_SCRIPT}}", scr);
-
-    scr = job.config.binary_path.substr ? job.config.binary_path : (cmd.ios ? job.config.binary_path.ios : job.config.binary_path.android);
-    data = data.replace("{{BUILD_PATH}}", scr).replace("{{BUILD_PATH}}", scr);
-
-    data = data.replace("{{BUILD_INDEX}}", cmd.index).replace("{{BUILD_INDEX}}", cmd.index);
-    data = data.replace("{{BUILD_PR_ID}}", job.uqID).replace("{{BUILD_PR_ID}}", job.uqID);
-
-
-    data = data.replace("{{CENTRALSCRIPTCOPY}}", serverScript);
-
-
-    fs.writeFileSync(__dirname + "/" + arrTo[i], data);
+    fs.writeFileSync(__dirname + '/' + arrTo[i], data);
   }
 };
 
