@@ -1,3 +1,4 @@
+
 var git = require('./../hook/git_actions');
 var db = require('./../db_actions');
 var fs = require('fs');
@@ -89,13 +90,7 @@ var updateScripts = function (job, cmd) {
 
     var scr = job.config.build.substr ? job.config.build : (cmd.ios ? job.config.build.ios : job.config.build.android);
     data = data.replace("{{BUILD_SCRIPT_PATH}}", scr);
-    
-    if (job.test) {
-      logme("Running CI in test mode", "green");
-      data = data.replace("{{BUILD_SCRIPT}}", scr + " true");
-    } else {
-      data = data.replace("{{BUILD_SCRIPT}}", scr);
-    }
+    data = data.replace("{{BUILD_SCRIPT}}", scr);
 
     scr = job.config.binary_path.substr ? job.config.binary_path : (cmd.ios ? job.config.binary_path.ios : job.config.binary_path.android);
     data = data.replace("{{BUILD_PATH}}", scr).replace("{{BUILD_PATH}}", scr);
@@ -359,7 +354,7 @@ var vmTask = function () {
         currentBuildCommand.kill(eopts.killSignal);
         return;
       }
-      // give additional 5 minutes for build job cleanup 
+      // give additional 5 minutes for build job cleanup
       if (Date.now() - lastStartTime > 2100000) {
         if (builderReset) {
           return;
