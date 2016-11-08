@@ -2,8 +2,9 @@ require('../logger');
 var fs = require('fs');
 var path = require('path');
 var exec = require('child_process').exec;
-var sync = jxcore.utils.cmdSync;
+var execSync = jxcore.utils.cmdSync;
 var spawn = require('child_process').spawn;
+
 var eopts = {
   encoding: 'utf8',
   timeout: 0,
@@ -110,7 +111,7 @@ exports.test = function (job, trying, callback_) {
       }
     } else {
       if (job.config.serverScript && job.config.serverScript.length)
-        jxcore.utils.cmdSync("curl 192.168.1.150:8060/nodes=" + nodes.length);
+        execSync("curl 192.168.1.150:8060/nodes=" + nodes.length);
 
       trying = 0;
       logme("Deploying on", nodes, "green");
@@ -145,7 +146,7 @@ exports.test = function (job, trying, callback_) {
 
 exports.leave = function () {
   leaveRecevied = true;
-  sync("cd "+__dirname+";./stop_nodes.sh");
+  execSync("cd "+__dirname+";./stop_nodes.sh");
   if (deployerChild) {
     deployerChild.kill();
   }

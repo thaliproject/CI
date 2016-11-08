@@ -4,7 +4,7 @@ var db = require('./../db_actions');
 var fs = require('fs');
 var path = require('path');
 var exec = require('child_process').exec;
-var sync = jxcore.utils.cmdSync;
+var execSync = jxcore.utils.cmdSync;
 var tester = require('../internal/tester');
 
 var eopts = {
@@ -166,7 +166,7 @@ var runBuild = function (cmds, job, index, cb) {
     // cleanup the script file
     if (!cmd.sync && cmd.to) {
       for (var i = 0; i < cmd.to.length; i++) {
-        sync("rm " + __dirname + "/" + cmd.to[i])
+        execSync("rm " + __dirname + "/" + cmd.to[i])
       }
     }
 
@@ -319,9 +319,9 @@ var buildJob = function (job) {
 
         if (job.target != "all") {
           if (job.target == 'ios')
-            sync("cd " + __dirname + "; rm -rf " + prPath + "/build_android");
+            execSync("cd " + __dirname + "; rm -rf " + prPath + "/build_android");
           else
-            sync("cd " + __dirname + "; rm -rf " + prPath + "/build_ios");
+            execSync("cd " + __dirname + "; rm -rf " + prPath + "/build_ios");
         }
 
         builderReset = true;

@@ -1,6 +1,6 @@
 var db = require('./../db_actions');
 var android = require('./deploy');
-var sync = jxcore.utils.cmdSync;
+var execSync = jxcore.utils.cmdSync;
 var tester = require('../internal/tester');
 var exec = require('child_process').exec;
 var path = require('path');
@@ -56,7 +56,7 @@ var runTask = function (job) {
       if (serverChild) {
         serverChild.killing = true;
         logme("Killing IS child");
-        sync("cd " + process.cwd() + "/tasker;ssh pi@192.168.1.150 'bash -s' < pkill.sh");
+        execSync("cd " + process.cwd() + "/tasker;ssh pi@192.168.1.150 'bash -s' < pkill.sh");
       }
 
       setTimeout(function () {
@@ -66,7 +66,7 @@ var runTask = function (job) {
         taskerReset = false;
         db.removeJob(activeJob);
 
-        sync("cd " + __dirname + ";rm -rf results/" + activeJob.uqID + "/; rm -rf ../builder/builds/" + activeJob.uqID);
+        execSync("cd " + __dirname + ";rm -rf results/" + activeJob.uqID + "/; rm -rf ../builder/builds/" + activeJob.uqID);
 
         tester.commitLog(activeJob.uqID);
         activeJob = null;
@@ -74,7 +74,7 @@ var runTask = function (job) {
     }
   };
 
-  var res = sync("cd " + __dirname + ";rm -rf results/" + job.uqID + "/;mkdir -p results/" + job.uqID);
+  var res = execSync("cd " + __dirname + ";rm -rf results/" + job.uqID + "/;mkdir -p results/" + job.uqID);
   if (res.exitCode) {
     logme("Error while creating the logs folder: ", err, stdout, stderr, "red");
     process.exit(1);
@@ -136,9 +136,9 @@ var runTask = function (job) {
 
       logme("IS exiting");
 
-      sync("rm " + rs_final);
-      sync("cd " + process.cwd() + "/tasker; ssh pi@192.168.1.150 'bash -s' < cleanupServer.sh");
-      sync("rm -rf " + p);
+      execSync("rm " + rs_final);
+      execSync("cd " + process.cwd() + "/tasker; ssh pi@192.168.1.150 'bash -s' < cleanupServer.sh");
+      execSync("rm -rf " + p);
     });
   }
 
@@ -175,7 +175,7 @@ var testTask = function () {
       taskerReset = true;
       if (serverChild) {
         serverChild.killing = true;
-        sync("cd " + process.cwd() + "/tasker;ssh pi@192.168.1.150 'bash -s' < pkill.sh");
+        execSync("cd " + process.cwd() + "/tasker;ssh pi@192.168.1.150 'bash -s' < pkill.sh");
       }
       android.leave();
       if (iosChild)
@@ -195,7 +195,7 @@ var testTask = function () {
 
   var delay = 45000; // phones were rebooting
   // randomly also restart the raspberries
-  sync("cd " + __dirname + ";./clean_nodes.sh");
+  execSync("cd " + __dirname + ";./clean_nodes.sh");
   lastStartTime = Date.now() + delay;
 
   setTimeout(function() {

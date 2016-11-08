@@ -2,7 +2,7 @@ require('../logger');
 var fs = require('fs');
 var path = require('path');
 var exec = require('child_process').exec;
-var sync = jxcore.utils.cmdSync;
+var execSync = jxcore.utils.cmdSync;
 var spawn = require('child_process').spawn;
 var eopts = {
   encoding: 'utf8',
@@ -171,7 +171,7 @@ var installApp = function (job, cb) {
   var loc = path.join(builds, job.uqID + "/build_ios/", job.config.binary_path.ios);
 
   if (job.config.serverScript && job.config.serverScript.length)
-    jxcore.utils.cmdSync("curl 192.168.1.150:8060/ios=" + arrDevices.length);
+    execSync("curl 192.168.1.150:8060/ios=" + arrDevices.length);
 
   for (var i = 0; i < arrDevices.length; i++) {
     var ll = new grabLLDB(i, loc, arrDevices[i].deviceId, function (err) {
@@ -193,7 +193,7 @@ var deployIOS = function (job, cb) {
       return;
     }
 
-    sync("killall ios-deploy;killall lldb");
+    execSync("killall ios-deploy;killall lldb");
     logme("installing the application", "");
     installApp(job, function (err, result) {
       cb(err, result);
@@ -222,10 +222,10 @@ var test_ = function (job, cb) {
 };
 
 exports.test = function (job, cb) {
-  sync("killall ios-deploy;killall lldb");
+  execSync("killall ios-deploy;killall lldb");
   test_(job, function (arr, isFailed) {
     activeJob = null;
-    var res = sync("cd " + __dirname + ";mkdir -p results/" + job.uqID + "/ios/");
+    var res = execSync("cd " + __dirname + ";mkdir -p results/" + job.uqID + "/ios/");
     if (res.exitCode) {
       isFailed = res.out;
     } else {
@@ -246,7 +246,7 @@ exports.test = function (job, cb) {
 };
 
 process.on('exit', function () {
-  sync("killall ios-deploy;killall lldb");
+  execSync("killall ios-deploy;killall lldb");
 });
 
 var timeout = job.config.timeout ? parseInt(job.config.timeout) * 1000 : 300000;

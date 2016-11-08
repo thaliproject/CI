@@ -1,9 +1,11 @@
 require('../logger').toFile("../../console.json");
+
 var fs = require('fs');
 var path = require('path');
 var exec = require('child_process').exec;
-var sync = jxcore.utils.cmdSync;
+var execSync = jxcore.utils.cmdSync;
 var spawn = require('child_process').spawn;
+
 var eopts = {
   encoding: 'utf8',
   timeout: 0,
@@ -22,7 +24,7 @@ var nodeId = 0;
 
 // out: [ [ '8a09fc3c', 'device' ] ]
 var getAndroidDevices = function () {
-  var res = sync("adb devices");
+  var res = execSync("adb devices");
   var i;
 
   if (res.exitCode != 0) {
@@ -56,9 +58,9 @@ var getAndroidDevices = function () {
   var manufacturer, model, sdkVersion,
       devices = [];
   for (i = 0; i < devs.length; i++) {
-    manufacturer = sync("adb -s " + devs[i][0] + " shell getprop ro.product.manufacturer");
-    model = sync("adb -s " + devs[i][0] + " shell getprop ro.product.model");
-    sdkVersion = sync("adb -s " + devs[i][0] + " shell getprop ro.build.version.sdk");
+    manufacturer = execSync("adb -s " + devs[i][0] + " shell getprop ro.product.manufacturer");
+    model = execSync("adb -s " + devs[i][0] + " shell getprop ro.product.model");
+    sdkVersion = execSync("adb -s " + devs[i][0] + " shell getprop ro.build.version.sdk");
 
     devices.push({
       deviceId: devs[i][0],
@@ -187,7 +189,7 @@ var grabLogcat = function (class_name, deviceId, deviceName, cb) {
 var logcatIndex = 0;
 var runAndroidApp = function (class_name, deviceId, deviceName, cb) {
   // clear logcat cache
-  sync('adb -s "' + deviceId + '" logcat -c');
+  execSync('adb -s "' + deviceId + '" logcat -c');
   // !! this may not work on some devices so don't check the failure
   // CI restarts the devices on each run
 
@@ -197,8 +199,8 @@ var runAndroidApp = function (class_name, deviceId, deviceName, cb) {
     if (!err) {
       var cmd = 'adb -s "' + deviceId + '" shell am start -n ' +
         class_name + '/' + class_name + '.MainActivity';
-      var res = sync(cmd);
-      if (res.exitCode !== 0 ||
+      var res = execSync(cmd);
+      if (res.exitCode !== 0) {
           res.out.indexOf('Error') !== -1) {
         var str = '\n' + res.out;
         if (str.length > 512) {
@@ -257,7 +259,7 @@ var runAndroidInstrumentationTests = function (class_name, runner, deviceIndex) 
 
 var uninstallApp = function (class_name, device_name) {
   var cmd = 'sleep 1;adb -s "' + device_name + '" uninstall ' + class_name;
-  var res = sync(cmd);
+  var res = execSync(cmd);
   if (res.exitCode != 0) {
     logme("Error: problem stopping Android apk(" + class_name + ") to device " + device_name, res.out, "");
     return false;
@@ -273,7 +275,7 @@ var stopAndroidApp = function (class_name, device_name, cb) {
   if (cb) {
     exec(cmd, eopts, cb);
   } else {
-    sync(cmd);
+    execSync(cmd);
 
     return true;
   }
@@ -332,7 +334,7 @@ var isDeviceBooted = function (device_name, timeout) {
   var result = false;
   setTimeout(function () {
     var cmd = 'adb -s ' + device_name + ' shell getprop sys.boot_completed';
-    var res = sync(cmd);
+    var res = execSync(cmd);
     result = res.exitCode === 0 && res.out.indexOf('1') === 0;
     jxcore.utils.continue();
   }, timeout);
@@ -359,7 +361,7 @@ if (!devicesReady) {
   logme("\n\nDevices on this node are not ready.\n",
         "Cancelling the test result on this node.\n");
   if (job.config.serverScript && job.config.serverScript.length) {
-    jxcore.utils.cmdSync("curl 192.168.1.150:8060/cancel=1");
+    execSync("curl 192.168.1.150:8060/cancel=1");
   }
   process.exit(0);
 } else {
@@ -384,7 +386,7 @@ for (var i = 0; i < arrDevices.length; i++) {
       "Cancelling the test result on this node.\n", res);
 
     if (job.config.serverScript && job.config.serverScript.length)
-      jxcore.utils.cmdSync("curl 192.168.1.150:8060/cancel=1");
+      execSync("curl 192.168.1.150:8060/cancel=1");
 
     process.exit(0);
   }
@@ -398,7 +400,7 @@ var callback = function (err) {
 };
 
 if (job.config.serverScript && job.config.serverScript.length)
-  jxcore.utils.cmdSync("curl 192.168.1.150:8060/droid=" + arrDevices.length);
+  execSync("curl 192.168.1.150:8060/droid=" + arrDevices.length);
 
 for (var i = 0; i < arrDevices.length; i++) {
   if (job.config.instrumentationTestRunner) {
