@@ -75,10 +75,10 @@ var updateScripts = function (job, cmd) {
 
   var serverScript = "";
   if (job.config.serverScript && job.config.serverScript.length) {
-    serverScript = "mkdir -p builds/server_" + job.uqID + "/" + job.config.serverScript + "/;ERROR_ABORT;\n";
+    serverScript = "mkdir -p builds/server_" + job.uqID + "/" + job.config.serverScript + "/;\n";
 
     var target_loc = path.join("builds/server_" + job.uqID + "/" + job.config.serverScript, "../");
-    serverScript += "scp -r thali@192.168.1.20:~/Github/testBuild/" + job.config.serverScript + " " + target_loc + " ;ERROR_ABORT"
+    serverScript += "scp -r thali@192.168.1.20:~/Github/testBuild/" + job.config.serverScript + " " + target_loc + " ;"
   }
 
   for (var i = 0; i < arrFrom.length; i++) {
