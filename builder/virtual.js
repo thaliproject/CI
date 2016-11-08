@@ -90,7 +90,7 @@ var updateScripts = function (job, cmd) {
     BRANCH_NAME: job.commitIndex ? job.commitIndex : job.branch,
     TARGET_BRANCH: job.targetBranch,
     BUILD_SCRIPT_PATH: scr,
-    BUILD_SCRIPT: job.test ? scr + ' true' : scr,
+    BUILD_SCRIPT: scr,
     BUILD_PATH: job.config.binary_path.substr ? job.config.binary_path :
       (cmd.ios ? job.config.binary_path.ios : job.config.binary_path.android),
     BUILD_INDEX: cmd.index,
