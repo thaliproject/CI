@@ -1,4 +1,6 @@
+var execSync = jxcore.utils.cmdSync;
 var spawn = require('child_process').spawn;
+
 var eopts = {
   encoding: 'utf8',
   timeout: 0,
@@ -46,10 +48,10 @@ var checkIt = function(){
     lock_me = true;
     var obj = {devices: targets};
     console.log("IS Running:");
-    
+
     console.log("Running 'jx install'");
-    var out = jxcore.utils.cmdSync("cd " + __dirname + "; jx install");
-    
+    var out = execSync("cd " + __dirname + "; jx install");
+
     if (out.exitCode != 0) {
       console.log(out.out, "\n");
       // If jx install fails, we can't run the server
@@ -63,7 +65,7 @@ var checkIt = function(){
     delete obj.devices.cancel;
 
     console.log(">", process.argv[0] + " index.js " + JSON.stringify(obj));
-    
+
     // give a small break for a potential kill SIGNAL from server
     setTimeout(function(){
       var child = spawn(process.argv[0], ["index.js", JSON.stringify(obj)], eopts);
@@ -75,7 +77,7 @@ var checkIt = function(){
       child.stderr.on('data', function (data) {
         console.error(data+"");
       });
-      
+
       child.on('exit', function (code) {
         process.exit(code);
       });

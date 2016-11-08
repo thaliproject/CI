@@ -1,6 +1,6 @@
 var db = require('./../db_actions');
-var sync = jxcore.utils.cmdSync;
 var exec = require('child_process').exec;
+var execSync = jxcore.utils.cmdSync;
 var path = require('path');
 var fs = require('fs');
 
@@ -38,8 +38,8 @@ var push_logs = function() {
       fs.writeFileSync(process.cwd() + '/TestResults/' + task.fn, task.lg);
 
     if(fs.existsSync(process.cwd() + "/TMP/" + task.bn + "/")) {
-      sync("mv " + process.cwd() + "/TMP/" + task.bn + "/* " + process.cwd() + '/TestResults/');
-      sync("rm -rf " + process.cwd() + "/TMP/" + task.bn + "/");
+      execSync("mv " + process.cwd() + "/TMP/" + task.bn + "/* " + process.cwd() + '/TestResults/');
+      execSync("rm -rf " + process.cwd() + "/TMP/" + task.bn + "/");
     }
 
     exec("cd " + process.cwd()
@@ -58,7 +58,7 @@ var push_logs = function() {
 
 exports.logIntoBranch = function (branch_name, filename, log, cb, skip) {
   if(skip && skip !== -1) {
-    sync("mkdir -p " + process.cwd() + "/TMP/" + branch_name + "/");
+    execSync("mkdir -p " + process.cwd() + "/TMP/" + branch_name + "/");
     fs.writeFileSync(process.cwd() + '/TMP/' + branch_name + "/" + filename, log);
     cb(null);
     return;
