@@ -1,8 +1,18 @@
+//  Copyright (C) Microsoft. All rights reserved.
+//  Licensed under the MIT license. See LICENSE.txt file in the project root
+//  for full license information.
+//
+
+'use strict';
+
+var fs = require('fs');
+var local = new loki('config.json');
 var loki = require('lokijs');
 var server = new loki('server.json');
-var local = new loki('config.json');
-var fs = require('fs');
 var virtual = require('./builder/virtual');
+
+var Logger = require('./logger');
+var logger = new Logger();
 
 exports.nodeCount = 2;
 
@@ -229,7 +239,7 @@ exports.addJob = function (user, repo, branch, opts, json) {
     obj.jobsQueue.push(job);
   }
 
-  logme("New Test", job.user, job.repo, job.prId, "green");
+  logger.info('New Test', job.user, job.repo, job.prId);
 
   // update collection
   test.update(obj);

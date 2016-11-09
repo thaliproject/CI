@@ -1,11 +1,20 @@
+//  Copyright (C) Microsoft. All rights reserved.
+//  Licensed under the MIT license. See LICENSE.txt file in the project root
+//  for full license information.
+//
 
-var git = require('./../hook/git_actions');
+'use strict';
+
 var db = require('./../db_actions');
-var fs = require('fs');
-var path = require('path');
 var exec = require('child_process').exec;
 var execSync = jxcore.utils.cmdSync;
+var fs = require('fs');
+var git = require('./../hook/git_actions');
+var path = require('path');
 var tester = require('../internal/tester');
+
+var Logger = require('../logger');
+var logger = new Logger();
 
 var eopts = {
   encoding: 'utf8',
@@ -27,17 +36,17 @@ var stopVM = function (cb) {
   var vm = '/Applications/VMware\\ Fusion.app/Contents/Library/vmrun';
   exec(vm + ' stop ~/Desktop/Virtual\\ Machines/OSXDEV.vmwarevm/OSXDEV.vmx', eopts, function (err, out, stderr) {
     if (err)
-      logme('Error stopping VM', err, out, stderr, 'red');
+      logger.error('Error stopping VM', err, out, stderr);
     cb(err, out, stderr);
   });
 };
 
 var resetVM = function (cb) {
-  var vm = "/Applications/VMware\\ Fusion.app/Contents/Library/vmrun";
-  vmChild = exec(vm + " revertToSnapshot ~/Desktop/Virtual\\ Machines/OSXDEV.vmwarevm/OSXDEV.vmx snapshot1", eopts, function (err, stdout, stderr) {
+  var vm = '/Applications/VMware\\ Fusion.app/Contents/Library/vmrun';
+  vmChild = exec(vm + ' revertToSnapshot ~/Desktop/Virtual\\ Machines/OSXDEV.vmwarevm/OSXDEV.vmx snapshot1', eopts, function (err, stdout, stderr) {
     vmChild = null;
     if (err) {
-      logme("Error: Something went terribly bad.. ", err + "\n" + stdout + "\n" + stderr, "red");
+      logger.error('Error: Something went terribly bad.. ', err + '\n' + stdout + '\n' + stderr);
       stopVM(function () {
         setTimeout(function () {
           resetVM(cb);
@@ -47,13 +56,14 @@ var resetVM = function (cb) {
       return;
     }
 
-    logme("VM: Revert snapshot", "green");
+    logger.info('VM: Revert snapshot');
     // check queue if there is something start
 
     vmChild = exec(vm + " start ~/Desktop/Virtual\\ Machines/OSXDEV.vmwarevm/OSXDEV.vmx", eopts, function (err, stdout, stderr) {
       vmChild = null;
       if (err) {
-        logme("Error: Something went terribly bad... ", err + "\n" + stdout + "\n" + stderr, "red");
+        logger.error("Error: Something went terribly bad... ", err + "\n" + stdout + "\n" + stderr);
+
         stopVM(function () {
           setTimeout(function () {
             resetVM(cb);
@@ -61,7 +71,7 @@ var resetVM = function (cb) {
         });
         return;
       }
-      logme("VM: Start OS", "green");
+      logger.info('VM: Start OS');
 
       builderReset = false;
       cb();
@@ -117,7 +127,7 @@ var updateScripts = function (job, cmd) {
 
 var jobErrorReportAndRemove = function (job, err, stdout, stderr) {
   var msg = err + "\n\n" + stdout + "\n\n" + stderr;
-  logme("Error: ", msg, "(JOB ID:" + job.uqID + ")", "red");
+  logger.error("Error: ", msg, "(JOB ID:" + job.uqID + ")");
 
   if (msg.length > 12 * 1024) {
     var left = msg.substr(0, 6 * 1024);
@@ -296,12 +306,12 @@ var buildJob = function (job) {
 
     tester.logIssue(job, 'Test ' + job.prId + ' (' + job.commitIndex + ') build started.', '');
 
-    logme("Running builds for job:", job.uqID);
+    logger.info("Running builds for job:", job.uqID);
     runBuild(cmds, job, 0, function (err) {
       if (err || cancelJobId == job.prId)
         return;
 
-      logme("Build finished", "green");
+      logger.info('Build finished');
       activeJobId = 0;
       cancelJobId = 0;
 
@@ -309,7 +319,7 @@ var buildJob = function (job) {
       var prPath = "builds/" + job.uqID;
       exec("cd " + __dirname + "; rm -rf " + prPath + "; mkdir -p " + prPath + "; mv build_ios/ " + prPath + "; mv build_android/ " + prPath, eopts, function (err, stdout, stderr) {
         if (err) {
-          logme("something happened and couldn't move the builds?", err, stdout, stderr, "red");
+          logger.error("something happened and couldn't move the builds?", err, stdout, stderr);
           jobErrorReportAndRemove(job, err, stdout, stderr);
         } else {
           // save job
@@ -341,9 +351,9 @@ exports.IsActive = function (prId) {
 };
 
 exports.cancelIfActive = function (prId) {
-  logme("checking for cancel ", prId, activeJobId, "yellow");
+  logger.info("checking for cancel ", prId, activeJobId);
   if (activeJobId == prId) {
-    logme("Cancelling job ", prId, "yellow");
+    logger.info("Cancelling job ", prId);
     cancelJobId = prId;
     var vm = "/Applications/VMware\\ Fusion.app/Contents/Library/vmrun";
     builderReset = true;

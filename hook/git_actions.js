@@ -1,8 +1,18 @@
-var GitHubApi = require("github");
+//  Copyright (C) Microsoft. All rights reserved.
+//  Licensed under the MIT license. See LICENSE.txt file in the project root
+//  for full license information.
+//
+
+'use strict';
+
+var GitHubApi = require('github');
 var path = require('path');
+var reporting = require('../reporting/report');
 var tester = require('./../internal/tester');
 var virtual = require('./../builder/virtual')
-var reporting = require('../reporting/report');
+
+var Logger = require('../logger');
+var logger = new Logger();
 
 var github = new GitHubApi({
   // required
@@ -18,7 +28,7 @@ var github = new GitHubApi({
 });
 
 var createIssue = function (user, repo, title, body, cb) {
-  logme("Creating Github Issue", "red");
+  logger.info('Creating Github Issue');
 
   if (!cb)
     cb = function () {
@@ -35,11 +45,11 @@ var createIssue = function (user, repo, title, body, cb) {
 exports.createIssue = createIssue;
 
 var createGist = function (title, body, cb) {
-  logme("Creating Github Gist", "red");
+  logger.info('Creating Github Gist');
 
   var opts = {
     description: title,
-    public: "true",
+    public: 'true',
     files: {}
   };
 
@@ -140,7 +150,7 @@ var addBranchToQueue = function (user, repo, branch, opts) {
   getContent(user, repo, "/mobile_test.json", branch, function (err, res) {
     if (err) {
       createIssue(user, repo, "mobile_test.json is missing", "Skipped testing branch `" + branch + "`. There was no mobile_test.json file");
-      logme("skipped testing branch", branch, "on", user + "/" + repo, "(no mobile_test.json found)", "red");
+      logger.info("skipped testing branch", branch, "on", user + "/" + repo, "(no mobile_test.json found)");
       return;
     } else {
       if (res instanceof Buffer) {
@@ -169,13 +179,13 @@ var addBranchToQueue = function (user, repo, branch, opts) {
               delete json.body;
             }
 
-            logme("Job Index", index);
+            logger.info("Job Index", index);
             return;
           }
 
         } catch (e) {
           Error.captureStackTrace(e);
-          logme("Error at addBranchQueue", e, e.stack, "red");
+          logger.error("Error at addBranchQueue", e, e.stack);
           err = e;
         }
       }
@@ -184,7 +194,7 @@ var addBranchToQueue = function (user, repo, branch, opts) {
       + branch + ". mobile_test.json file must be broken. \n\n> " + (err ? err : "") + "\n\n```\n"
       + res + "\n```");
 
-      logme("skipped testing branch", branch, "on", user + "/" + repo, "(mobile_test.json file must be corrupted)", "red");
+      logger.error('skipped testing branch', branch, 'on', user + '/' + repo, '(mobile_test.json file must be corrupted)');
     }
   });
 };
@@ -212,7 +222,7 @@ var newTest = function (prId, prNumber, user, title, repo_name, branch, commits,
   // check the updated file types to see if this PR deserves testing
   getFiles(opts, function (err, res) {
     if (err) {
-      logme("Error newTest (getFiles) : " + err, "red");
+      logger.error("Error newTest (getFiles) : " + err);
     } else {
       for (var i = 0; i < res.length; i++) {
         var ext = path.extname(res[i].filename).toLowerCase();
@@ -230,7 +240,7 @@ var newTest = function (prId, prNumber, user, title, repo_name, branch, commits,
       opts.body = "Skipping PR - No APP related changes";
       createComment(opts, function () {
       });
-      logme("Skipping PR (no app changes):", prNumber, repo_name, "green");
+      logger.info("Skipping PR (no app changes):", prNumber, repo_name);
     }
   });
 };

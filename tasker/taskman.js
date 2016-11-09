@@ -1,10 +1,20 @@
-var db = require('./../db_actions');
+//  Copyright (C) Microsoft. All rights reserved.
+//  Licensed under the MIT license. See LICENSE.txt file in the project root
+//  for full license information.
+//
+
+'use strict';
+
 var android = require('./deploy');
-var execSync = jxcore.utils.cmdSync;
-var tester = require('../internal/tester');
-var exec = require('child_process').exec;
-var path = require('path');
+var db = require('./../db_actions');
 var fs = require('fs');
+var exec = require('child_process').exec;
+var execSync = jxcore.utils.cmdSync;
+var path = require('path');
+var tester = require('../internal/tester');
+
+var Logger = require('../logger');
+var logger = new Logger();
 
 var eopts = {
   encoding: 'utf8',
@@ -22,7 +32,7 @@ var taskCounter = 0;
 var iosChild;
 
 function runIos(job, cb) {
-  logme("iOS test task is running", 'yellow')
+  logger.info('iOS test task is running')
   var job64 = new Buffer(JSON.stringify(job), "").toString("base64");
 
   return exec("cd " + __dirname + "; jx ios.js " + job64, eopts, function (err, stdout, stderr) {
@@ -31,7 +41,7 @@ function runIos(job, cb) {
     } else {
       tester.report(job, "ios", false, true);
     }
-    logme("iOS test task FINISHED");
+    logger.info("iOS test task FINISHED");
     cb(1);
   });
 }
@@ -49,18 +59,18 @@ var runTask = function (job) {
     if (taskCounter <= 0 || itemTotal == 0) {
       taskCounter = 0;
       if (!activeJob) return;
-      logme("Test " + activeJob.uqID + " has finished", "green");
+      logger.info("Test " + activeJob.uqID + " has finished");
       taskerReset = true;
       // rebooting nodes give some time
 
       if (serverChild) {
         serverChild.killing = true;
-        logme("Killing IS child");
+        logger.info("Killing IS child");
         execSync("cd " + process.cwd() + "/tasker;ssh pi@192.168.1.150 'bash -s' < pkill.sh");
       }
 
       setTimeout(function () {
-        logme("Cleaning up");
+        logger.info("Cleaning up");
         // test is finished
         taskerBusy = false;
         taskerReset = false;
@@ -76,7 +86,7 @@ var runTask = function (job) {
 
   var res = execSync("cd " + __dirname + ";rm -rf results/" + job.uqID + "/;mkdir -p results/" + job.uqID);
   if (res.exitCode) {
-    logme("Error while creating the logs folder: ", err, stdout, stderr, "red");
+    logger.error("Error while creating the logs folder: ", err, stdout, stderr);
     process.exit(1);
   }
 
@@ -112,7 +122,7 @@ var runTask = function (job) {
 
     fs.writeFileSync(rs_final, src);
 
-    logme("IS Args:", p);
+    logger.info('IS Args:', p);
     serverChild = exec("cd " + process.cwd() + "/tasker;chmod +x ./runServer.sh;./runServer.sh " + p,
       eopts, function (err, stdout, stderr) {
       if (err && !serverChild.killing) {
@@ -134,7 +144,7 @@ var runTask = function (job) {
       }
       serverChild = null;
 
-      logme("IS exiting");
+      logger.info("IS exiting");
 
       execSync("rm " + rs_final);
       execSync("cd " + process.cwd() + "/tasker; ssh pi@192.168.1.150 'bash -s' < cleanupServer.sh");
@@ -146,7 +156,7 @@ var runTask = function (job) {
     itemTotal = 0;
     if (delay > 1 && serverChild == null) {
       // serverScript task has failed. do not run tests
-      logme("serverChild execution has failed", "red");
+      logger.error("serverChild execution has failed");
       cb();
     } else {
       if (job.target == "all" || job.target == "ios") {

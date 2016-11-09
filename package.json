@@ -8,6 +8,7 @@
     "node": ">=0.10.0"
   },
   "dependencies": {
+    "chalk": "1.1.1",
     "express": "4.13.3",
     "express-handlebars": "2.0.1",
     "github": "^0.2.4",
