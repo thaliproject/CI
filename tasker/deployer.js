@@ -1,4 +1,10 @@
-require('../logger');
+//  Copyright (C) Microsoft. All rights reserved.
+//  Licensed under the MIT license. See LICENSE.txt file in the project root
+//  for full license information.
+//
+
+'use strict';
+
 var fs = require('fs');
 var path = require('path');
 var exec = require('child_process').exec;
@@ -96,9 +102,9 @@ for (var i = 0; i < job.nodes.length; i++) {
 
 //copy logger.js script
 for (var i = 0; i < job.nodes.length; i++) {
-  var res = execSync("cd " + __dirname + ";scp ../logger.js pi@" + job.nodes[i].ip + ":~/test/");
+  var res = execSync('cd ' + __dirname + ';scp ../logger.js pi@' + job.nodes[i].ip + ':~/test/');
   if (res.exitCode != 0) {
-    console.error("copy logger.js:", res.out);
+    console.error('copy logger.js:', res.out);
     process.exit(1);
     return;
   }

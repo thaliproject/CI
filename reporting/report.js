@@ -1,8 +1,18 @@
+//  Copyright (C) Microsoft. All rights reserved.
+//  Licensed under the MIT license. See LICENSE.txt file in the project root
+//  for full license information.
+//
+
+'use strict';
+
 var db = require('./../db_actions');
 var exec = require('child_process').exec;
 var execSync = jxcore.utils.cmdSync;
-var path = require('path');
 var fs = require('fs');
+var path = require('path');
+
+var Logger = require('../logger');
+var logger = new Logger();
 
 var eopts = {
   encoding: 'utf8',
@@ -25,7 +35,7 @@ var push_logs = function() {
 
   var task = log_queue.shift();
 
-  logme("Creating Github Branch for " + task.bn, "red");
+  logger.warn("Creating Github Branch for " + task.bn);
 
   createBranch(task.bn, function (err, res) {
     if (err) {
@@ -45,12 +55,14 @@ var push_logs = function() {
     exec("cd " + process.cwd()
       + "/reporting;chmod +x ./commit_logs.sh;./commit_logs.sh " + task.bn, eopts,
       function (err, stdout, stderr) {
-        logme("Creating Github Branch for " + task.bn + " was " + (err ? "failed" : "successful"), "blue");
+        logger.info("Creating Github Branch for " + task.bn + " was " + (err ? "failed" : "successful"));
+
         if (err) {
           task.cb(err, stdout + "\n" + stderr);
         } else {
           task.cb(null);
         }
+
         push_logs();
       });
   });

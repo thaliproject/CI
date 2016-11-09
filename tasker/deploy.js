@@ -1,9 +1,19 @@
-require('../logger');
+//  Copyright (C) Microsoft. All rights reserved.
+//  Licensed under the MIT license. See LICENSE.txt file in the project root
+//  for full license information.
+//
+
+'use strict';
+
 var fs = require('fs');
-var path = require('path');
 var exec = require('child_process').exec;
 var execSync = jxcore.utils.cmdSync;
+var path = require('path');
 var spawn = require('child_process').spawn;
+var tester = require('../internal/tester');
+
+var Logger = require('../logger');
+var logger = new Logger();
 
 var eopts = {
   encoding: 'utf8',
@@ -12,9 +22,7 @@ var eopts = {
   killSignal: 'SIGTERM'
 };
 
-var tester = require('../internal/tester');
-
-var node_config = fs.readFileSync(__dirname + "/nodes.json") + "";
+var node_config = fs.readFileSync(__dirname + '/nodes.json') + '';
 
 function counterExec(index, cmd, cb) {
   this.cmd = cmd;
@@ -36,7 +44,7 @@ function busyCheck(nodes, callback) {
     return;
   }
 
-  logme("Identifying Available Nodes", nodes, "yellow");
+  logger.info("Identifying Available Nodes", nodes);
   var counter = nodes.length;
   var arr = [];
   var cb = function (err, stdout, stderr, index) {
@@ -58,7 +66,7 @@ function busyCheck(nodes, callback) {
 }
 
 function getAvailableNodes(callback) {
-  logme("Ping Testing Nodes", "yellow");
+  logger.info("Ping Testing Nodes");
   // read nodes
   var config = JSON.parse(node_config);
   var nodes = [];
@@ -99,7 +107,7 @@ exports.test = function (job, trying, callback_) {
     trying = 0;
   getAvailableNodes(function (nodes) {
     if (nodes.length == 0) {
-      logme("Error: No active node at the moment", "red");
+      logger.error('Error: No active node at the moment');
       if (trying < 4) {
         tryInter = setTimeout(function () {
           exports.test(job, trying++, callback);
@@ -114,10 +122,10 @@ exports.test = function (job, trying, callback_) {
         execSync("curl 192.168.1.150:8060/nodes=" + nodes.length);
 
       trying = 0;
-      logme("Deploying on", nodes, "green");
+      logger.info("Deploying on", nodes);
       deploy(job, nodes, function (err, stdout, stderr) {
         if (err) {
-          logme(err, stdout, stderr, "red");
+          logger.error(err, stdout, stderr);
 
           if (err.retry && trying < 2) {
             tryInter = setTimeout(function () {
