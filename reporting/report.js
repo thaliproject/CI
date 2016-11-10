@@ -44,12 +44,14 @@ var push_logs = function() {
       return;
     }
 
-    if (task.sk !== -1)
+    if (task.sk !== -1) {
       fs.writeFileSync(process.cwd() + '/TestResults/' + task.fn, task.lg);
+    }
 
-    if(fs.existsSync(process.cwd() + "/TMP/" + task.bn + "/")) {
-      execSync("mv " + process.cwd() + "/TMP/" + task.bn + "/* " + process.cwd() + '/TestResults/');
-      execSync("rm -rf " + process.cwd() + "/TMP/" + task.bn + "/");
+    var tmpDir = process.cwd() + '/TMP/' + task.bn;
+    if (fs.existsSync(tmpDir + '/')) {
+      execSync('mv ' + tmpDir + '/* ' + process.cwd() + '/TestResults/');
+      execSync('rm -rf ' + tmpDir + '/');
     }
 
     exec("cd " + process.cwd()
@@ -68,11 +70,11 @@ var push_logs = function() {
   });
 };
 
-exports.logIntoBranch = function (branch_name, filename, log, cb, skip) {
+exports.logIntoBranch = function (branch_name, filename, log, callback, skip) {
   if(skip && skip !== -1) {
-    execSync("mkdir -p " + process.cwd() + "/TMP/" + branch_name + "/");
-    fs.writeFileSync(process.cwd() + '/TMP/' + branch_name + "/" + filename, log);
-    cb(null);
+    execSync('mkdir -p ' + process.cwd() + '/TMP/' + branch_name + '/');
+    fs.writeFileSync(process.cwd() + '/TMP/' + branch_name + '/' + filename, log);
+    callback(null);
     return;
   }
 

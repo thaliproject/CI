@@ -168,7 +168,7 @@ var runBuild = function (cmds, job, index, cb) {
   if (!cmd.sync)
     updateScripts(job, cmd);
 
-  currentBuildCommand = exec("cd " + __dirname + ";" + cmd.cmd, eopts, function (err, stdout, stderr) {
+  currentBuildCommand = exec('cd ' + __dirname + ';' + cmd.cmd, eopts, function (err, stdout, stderr) {
     currentBuildCommand = null;
     if (cancelJobId == job.prId)
       return;
@@ -176,7 +176,7 @@ var runBuild = function (cmds, job, index, cb) {
     // cleanup the script file
     if (!cmd.sync && cmd.to) {
       for (var i = 0; i < cmd.to.length; i++) {
-        execSync("rm " + __dirname + "/" + cmd.to[i])
+        execSync('rm ' + __dirname + '/' + cmd.to[i]);
       }
     }
 
@@ -327,11 +327,12 @@ var buildJob = function (job) {
           db.updateJob(job);
         }
 
-        if (job.target != "all") {
-          if (job.target == 'ios')
-            execSync("cd " + __dirname + "; rm -rf " + prPath + "/build_android");
-          else
-            execSync("cd " + __dirname + "; rm -rf " + prPath + "/build_ios");
+        if (job.target != 'all') {
+          if (job.target == 'ios') {
+            execSync('cd ' + __dirname + '; rm -rf ' + prPath + '/build_android');
+          } else {
+            execSync('cd ' + __dirname + '; rm -rf ' + prPath + '/build_ios');
+          }
         }
 
         builderReset = true;

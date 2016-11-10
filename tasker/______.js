@@ -1,3 +1,10 @@
+//  Copyright (C) Microsoft. All rights reserved.
+//  Licensed under the MIT license. See LICENSE.txt file in the project root
+//  for full license information.
+//
+
+'use strict';
+
 var execSync = jxcore.utils.cmdSync;
 var spawn = require('child_process').spawn;
 
@@ -33,7 +40,7 @@ targets.cancel=1;
 var http = require('http');
 var lock_me = false;
 
-var checkIt = function(){
+var checkIt = function() {
   var no_exit = false;
   for (var o in targets) {
     if (targets.hasOwnProperty(o)) {
@@ -49,8 +56,8 @@ var checkIt = function(){
     var obj = {devices: targets};
     console.log("IS Running:");
 
-    console.log("Running 'jx install'");
-    var out = execSync("cd " + __dirname + "; jx install");
+    console.log('Running \'jx install\'');
+    var out = execSync('cd ' + __dirname + '; jx install');
 
     if (out.exitCode != 0) {
       console.log(out.out, "\n");
@@ -89,12 +96,12 @@ http.createServer(function (req, res) {
   if (!lock_me) {
     var url = req.url.substr(1).split('=');
     if (url.length < 2) {
-      console.error("Unknown information received by IS manager", req.url);
+      console.error('Unknown information received by IS manager', req.url);
       process.exit(1);
     }
 
     if (!targets.hasOwnProperty(url[0]) || isNaN(parseInt(url[1])) || parseInt(url[1]) == 0) {
-      console.error("Unknown information received by IS manager", req.url);
+      console.error('Unknown information received by IS manager', req.url);
       process.exit(1);
     }
 

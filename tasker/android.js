@@ -81,41 +81,40 @@ var getAndroidDevices = function () {
 };
 
 var arrDevices = getAndroidDevices();
-var builds = path.join(__dirname, "../builder/builds/" + job.uqID + "/build_android");
+var builds = path.join(
+  __dirname, '..', 'builder', 'builds', job.uqID, 'build_android');
 var appCounter = 0;
 var testFailed = false;
 
-var deployAndroid = function (apk_path, device_name, class_name, isMarshmallow) {
+var deployAndroid = function (apk_path, device_name, class_name, isMarshmallow, callback) {
   var grantPermission = '';
   if (isMarshmallow) {
     grantPermission = ';adb -s ' + device_name + ' shell pm grant com.test.thalitest android.permission.ACCESS_COARSE_LOCATION';
-    logger.warn("Marshmallow device. Granting ACCESS_COARSE_LOCATION permission.");
+    logger.warn('Marshmallow device. Granting ACCESS_COARSE_LOCATION permission.');
   }
 
   var cmd = 'adb -s ' + device_name + ' install -r ' + apk_path +
       ';adb -s ' + device_name + ' shell pm list packages' + grantPermission;
 
-  var res = null;
-  var failureReasonIndex = -1;
-  var failureReason = "";
   exec(cmd, eopts, function (err, stdout, stderr) {
+    var res = null;
+    var failureReasonIndex = -1;
+    var failureReason = '';
+
     if (err || stdout.indexOf(class_name) < 0) {
-      res = ("Error: problem deploying Android apk(" + apk_path + ") to device " + device_name + (err ? ("\n" + err) : ""));
+      res = ('Error: problem deploying Android apk(' + apk_path + ') to device ' + device_name + (err ? ('\n' + err) : ''));
       failureReasonIndex = stdout.indexOf('Failure');
       if (failureReasonIndex > -1) {
         failureReason = stdout.substring(failureReasonIndex);
         failureReason = failureReason.substring(0, failureReason.indexOf('\n'));
-        res += "\n" + failureReason;
+        res += '\n' + failureReason;
       }
     } else {
-      logger.info("App was succesfully deployed to " + device_name + "\n");
+      logger.info('App was succesfully deployed to ' + device_name + '\n');
     }
-    jxcore.utils.continue();
+
+    callback(res);
   });
-
-  jxcore.utils.jump();
-
-  return res;
 };
 
 var logArray = {};
@@ -337,7 +336,7 @@ var isDeviceBooted = function (device_name, timeout) {
   return result;
 };
 
-//ensure all devices are up and running
+// ensure all devices are up and running
 var devicesReady = true;
 for (var i = 0; i < arrDevices.length; i++) {
   var bootCheckCount = 0;
@@ -360,7 +359,7 @@ if (!devicesReady) {
   }
   process.exit(0);
 } else {
-  logger.info("\nAll devices are ready!\n");
+  logger.info('\nAll devices are ready!\n');
 }
 
 var retry_count=0;
@@ -368,29 +367,48 @@ var retry_count=0;
 for (var i = 0; i < arrDevices.length; i++) {
   var isMarshmallow = arrDevices[i].sdkVersion > 22;
 
-  logger.info("Deploying to " + arrDevices[i].deviceId);
+  logger.info('Deploying to ' + arrDevices[i].deviceId);
 
-  var res = deployAndroid(builds + "/android_" + nodeId + "_" + job.uqID + ".apk", arrDevices[i].deviceId, job.config.csname.android, isMarshmallow);
+  var res = null;
+
+  deployAndroid(
+    builds + '/android_' + nodeId + '_' + job.uqID + '.apk',
+    arrDevices[i].deviceId,
+    job.config.csname.android,
+    isMarshmallow,
+    function (result) {
+      res = result;
+      jxcore.utils.continue();
+    }
+  );
+
+  jxcore.utils.jump();
+
   if (res && retry_count < 2) {
     retry_count++;
     i--;
     continue;
   }
-  if (res) {
-    logger.info("\n\nTest on this node has failed but the reason wasn't the test application itself.\n",
-      "Cancelling the test result on this node.\n", res);
 
-    if (job.config.serverScript && job.config.serverScript.length)
-      execSync("curl 192.168.1.150:8060/cancel=1");
+  if (res) {
+    logger.info(
+      '\n\nTest on this node has failed but the reason wasn\'t the test application itself.\n',
+      'Cancelling the test result on this node.\n',
+      res);
+
+    if (job.config.serverScript && job.config.serverScript.length) {
+      execSync('curl 192.168.1.150:8060/cancel=1');
+    }
 
     process.exit(0);
   }
+
   retry_count = 0;
 }
 
 var callback = function (err) {
   if (err) {
-    logger.error("Error!", err);
+    logger.error('Error!', err);
   }
 };
 
