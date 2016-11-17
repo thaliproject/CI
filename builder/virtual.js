@@ -294,6 +294,8 @@ var buildJob = function (job) {
       to: ["copy_server.sh"]
     });
 
+    tester.logIssue(job, 'Test ' + job.prId + ' (' + job.commitIndex + ') build started.', '');
+
     logme("Running builds for job:", job.uqID);
     runBuild(cmds, job, 0, function (err) {
       if (err || cancelJobId == job.prId)
