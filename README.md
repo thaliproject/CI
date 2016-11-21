@@ -30,21 +30,21 @@ jx CI.js
 
 #### Expectations
 
-- Main machine is expected to be an OSX 10.10+ with latest XCode, Python 2.7, Github, and JXcore
+- Main machine is expected to be an OSX 10.12+ with the latest XCode, Python 2.7, Github, and JXcore
 - Nodes are Raspberry Pi 2+ with latest Raspbian (see tools folder for adb and jxcore)
 - VM script is designed for VMWare Fusion
-- 
 
 #### Virtual Machine
 
 Installed software
-- XCode 7.2
-- Node 6.3.1
-- npm 3.10.3
-- JXCore 0.3.1.2
+- macOS 10.12.1
+- XCode 7.3.1
+- Node 6.9.1
+- npm 3.10.8
+- JXCore 0.3.1.6
 - python 2.7.10
-- Cordova 6.1.0
-- JDK 1.7.0.79
+- Cordova 6.3.1
+- JDK 1.8.0_102
 - Android SDK
     * Android SDK tools 23.1
     * Android SDK tools 22.2
@@ -53,11 +53,13 @@ Installed software
     * Android SDK tools 19.4
     * Android SDK tools 18.3
     * Android SDK tools 16.5
-    * Android Support Repository 25
-    * Android Support library 23.1.1
-    * Google Repository 24
+    * Android Support Repository 40
+    * Google Repository 38
 
 ##### The other software
+
+It's expected that all dependencies to be installed via Brew when it's possible.
+
 1. Install Homebrew - a package manager for OS X:
  <pre>
  /usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
@@ -91,21 +93,23 @@ _Note:_ Make sure that the private key used to sign the application has proper a
 - Go to Keychain, select System keychain and expand the certificate node (iPhone Developer).
 - Right click on the private key and choose Get Info. On the Access Control tab choose _Allow all applications to access this item_.
 
-When adding certificates using Xcode, it may happen that the private keys are stored both in the _login_ and in the _System_ keychains. Make sure that the key used for signing is stored only in the _System_ keychain, as the build is executed via the SSH with no access to the UI. Inproper setting will cause the signing to fail with an error "User interaction is not allowed."
+__WARNING__: You'll probably have to create App ID record: 'com.thali.test' on developer Apple portal
+
+When adding certificates using Xcode, it may happen that the private keys are stored both in the _login_ and in the _System_ keychains. Make sure that the key used for signing is stored only in the _System_ keychain, as the build is executed via the SSH with no access to the UI. Improper setting will cause the signing to fail with an error "User interaction is not allowed."
 
 ##### Other settings
 
 1. Update the bashrc and .bash_profile with:
  <pre>
- PATH="/Library/Frameworks/Python.framework/Versions/2.7/bin:/Users/thali/Library/Android/sdk/platform-tools:/Users/thali/Library/Android/sdk/build-tools/23.0.2:/Users/thali/Library/Android/ndk:/usr/local/bin:${PATH}"
+ PATH="/Library/Frameworks/Python.framework/Versions/2.7/bin:/Users/thali/Library/Android/sdk/platform-tools:/Users/thali/Library/Android/sdk/build-tools/25.0.0:/Users/thali/Library/Android/ndk:/usr/local/bin:${PATH}"
  export ANDROID_HOME="/Users/thali/Library/Android/sdk"
  export PATH
  </pre>
 2. Prepare CIGIVEMEMYIP.sh.
- 
+
  CIGIVEMEMYIP.sh is a script executed by build.sh that prints out
  an appropriate test server IP address in CI.
- 
+
  The example below shows how to prepare a file that prints out the IP address
  and then copy it to the '/usr/local/bin/':
  <pre>
@@ -121,7 +125,7 @@ When adding certificates using Xcode, it may happen that the private keys are st
 
 #### Adding devices
 
-##### IOS
+##### iOS
 
 Each Apple device has to be added to the provisioning profile. Do the following:
 
@@ -129,6 +133,16 @@ Each Apple device has to be added to the provisioning profile. Do the following:
 2. Go to the Device section under 'Certificates, Identifiers & Profiles'.
 3. Add your device using its UDID. (You can get the UDID using XCode or iTunes.)
 4. Update XCode with the updated provisioning profile. (Go to XCode --> Preferences --> Accounts --> ViewDetails -->Refresh.)
+
+### FAQ
+
+##### I have an error `name node_win_onecore is not defined while evaluating condition 'node_win_onecore==1'`
+
+This's known error. It happens when `npm install` is used instead of `jx install` improperly, i.e. when `npm` downloads native dependency that uses `leveldown-mobile`. Please keep in mind `leveldown-mobile` can only be used with JXCore, but not with Node.
+
+So solution is to check all usages of `npm` and validate that it doesn't install packages that to be compiled for mobile platforms.
+
+See the details [thaliproject/Thali_CordovaPlugin#1509](https://github.com/thaliproject/Thali_CordovaPlugin/issues/1509)
 
 
 ### Code of Conduct
