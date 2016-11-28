@@ -9,7 +9,7 @@ var tester = require('../internal/tester');
 
 var eopts = {
   encoding: 'utf8',
-  timeout: 1200000, // single command timeout - 20 min.
+  timeout: 1000 * 60 * 35, // single command timeout - 35 min.
   maxBuffer: 1e9,
   killSignal: 'SIGTERM'
 };
