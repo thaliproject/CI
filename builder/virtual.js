@@ -306,7 +306,7 @@ var buildJob = function (job) {
 
     tester.logIssue(job, 'Test ' + job.prId + ' (' + job.commitIndex + ') build started.', '');
 
-    logger.info("Running builds for job:", job.uqID);
+    logger.info('Running builds for job:', job.uqID);
     runBuild(cmds, job, 0, function (err) {
       if (err || cancelJobId == job.prId)
         return;
