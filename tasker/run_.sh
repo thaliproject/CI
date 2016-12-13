@@ -6,23 +6,15 @@
 
 NORMAL_COLOR='\033[0m'
 RED_COLOR=''
-GREEN_COLOR='\033[0;32m'
-GRAY_COLOR='\033[0;37m'
 
-LOG() {
-  COLOR="$1"
-  TEXT="$2"
-  echo -e "${COLOR}$TEXT ${NORMAL_COLOR}"
+OUTPUT() {
+  echo -e "${RED_COLOR}$BASH_COMMAND CI FAILED - sign_ios.sh failure${NORMAL_COLOR}"
 }
 
+set -euo pipefail
+trap OUTPUT ERR
 
-ERROR_ABORT() {
-  if [[ $? != 0 ]]
-  then
-    LOG "Android testing process has failed\n"
-    exit -1
-  fi
-}
 ### END - JXcore Test Server   --------
-cd test/tasker;ERROR_ABORT
-sudo jx android.js {{JOB64}};ERROR_ABORT
+
+cd test/tasker
+sudo node android.js {{JOB64}}
