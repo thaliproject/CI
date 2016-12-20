@@ -78,28 +78,31 @@ var testFailed = false;
 var deployAndroid = function (apk_path, device_name, class_name, isMarshmallow) {
   var grantPermission = '';
   if (isMarshmallow) {
-    grantPermission = ';adb -s ' + device_name + ' shell pm grant com.test.thalitest android.permission.ACCESS_COARSE_LOCATION';
+    grantPermission = '&& adb -s ' + device_name + ' shell pm grant com.test.thalitest android.permission.ACCESS_COARSE_LOCATION';
     logme("Marshmallow device. Granting ACCESS_COARSE_LOCATION permission.");
   }
 
   var cmd = 'adb -s ' + device_name + ' install -r ' + apk_path +
-      ';adb -s ' + device_name + ' shell pm list packages' + grantPermission;
+      '&& adb -s ' + device_name + ' shell pm list packages' + grantPermission;
 
   var res = null;
   var failureReasonIndex = -1;
-  var failureReason = "";
+  var failureReason = '';
   exec(cmd, eopts, function (err, stdout, stderr) {
-    if (err || stdout.indexOf(class_name) < 0) {
-      res = ("Error: problem deploying Android apk(" + apk_path + ") to device " + device_name + (err ? ("\n" + err) : ""));
+    if (err ||
+        stdout.indexOf(class_name) === -1 ||
+        stdout.indexOf('Success') === -1) {
+      res = ('Error: problem deploying Android apk(' + apk_path + ') to device ' + device_name + (err ? ('\n' + err) : ''));
       failureReasonIndex = stdout.indexOf('Failure');
       if (failureReasonIndex > -1) {
         failureReason = stdout.substring(failureReasonIndex);
         failureReason = failureReason.substring(0, failureReason.indexOf('\n'));
-        res += "\n" + failureReason;
+        res += '\n' + failureReason;
       }
     } else {
-      logme("App was succesfully deployed to " + device_name + "\n");
+      logme('App was succesfully deployed to ' + device_name + '\n');
     }
+
     jxcore.utils.continue();
   });
 
@@ -147,7 +150,7 @@ var grabLogcat = function (class_name, deviceId, deviceName, cb) {
         } else {
           logme("STOP log received from " + _this.deviceId + "\nTest has SUCCEED\n");
         }
-        
+
         _this.killing = true;
         stopAndroidApp(_this.class_name, _this.deviceId, function () {
           _this.child.kill();
@@ -173,7 +176,7 @@ var grabLogcat = function (class_name, deviceId, deviceName, cb) {
       } else {
         _this.child.failed = true;
         _this.cb("Unexpected exit on device " + _this.deviceId + " app:" + _this.class_name + " code:" + code);
-        
+
         logme("Child process exited with code " + code, "on device", _this.deviceId);
       }
       process.emit('mobile_ready', _this.deviceId, _this.child.failed);
@@ -223,7 +226,7 @@ var runAndroidInstrumentationTests = function (class_name, runner, deviceIndex) 
     logArray[arrDevices[deviceIndex].deviceName] = [stdout, stderr];
     arrDevices[deviceIndex].finished = true;
     appCounter++;
-    
+
     if (appCounter === arrDevices.length) {
       process.logsOnDisk = true;
       try {
@@ -231,7 +234,7 @@ var runAndroidInstrumentationTests = function (class_name, runner, deviceIndex) 
       } catch(e) {
         logme("Could not write logs. Error:", e + "");
       }
-  
+
       logme("Android instrumentation tests task is completed.", testFailed ? "[FAILED]" : "[SUCCESS]");
       for (var i = 0; i < arrDevices.length; i++) {
         stopAndroidApp(job.config.csname.android, arrDevices[i].deviceId);
