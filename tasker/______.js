@@ -1,3 +1,11 @@
+//  Copyright (C) Microsoft. All rights reserved.
+//  Licensed under the MIT license. See LICENSE.txt file in the project root
+//  for full license information.
+//
+
+'use strict';
+
+var execSync = jxcore.utils.cmdSync;
 var spawn = require('child_process').spawn;
 var eopts = {
   encoding: 'utf8',
@@ -6,11 +14,29 @@ var eopts = {
   killSignal: 'SIGTERM'
 };
 
+var errors = [
+  'Unidentified target argument',
+  'Unknown information received by IS manager',
+  'No android test node available',
+  'jx install failed',
+  'index.js failed'
+];
+
+function logErrorAndExit(code, args) {
+  var message = errors[code-1];
+  if (message) {
+    console.error(errors[code-1], args);
+  } else {
+    console.error(args);
+  }
+
+  process.exit(code);
+}
+
 var target = process.argv[2];
 
 if (!(target == "ios" || target == "android" || target == "all")) {
-  console.error("Unidentified target argument", target);
-  process.exit(1);
+  logErrorAndExit(1, [target]);
 }
 
 var targets = {};
@@ -46,15 +72,15 @@ var checkIt = function(){
     lock_me = true;
     var obj = {devices: targets};
     console.log("IS Running:");
-    
-    console.log("Running 'jx install'");
-    var out = jxcore.utils.cmdSync("cd " + __dirname + "; jx install");
-    
+
+    console.log('Running \'jx install\'');
+    var out = execSync('cd ' + __dirname + '; jx install');
+
     if (out.exitCode != 0) {
       console.log(out.out, "\n");
       // If jx install fails, we can't run the server
       // and without the server, the tests wouldn't run
-      process.exit(out.exitCode);
+      logErrorAndExit(3, [out.exitCode, out.out]);
     } else {
       console.log("Skipping the log for NPM since the exitCode was 0");
     }
@@ -63,7 +89,7 @@ var checkIt = function(){
     delete obj.devices.cancel;
 
     console.log(">", process.argv[0] + " index.js " + JSON.stringify(obj));
-    
+
     // give a small break for a potential kill SIGNAL from server
     setTimeout(function(){
       var child = spawn(process.argv[0], ["index.js", JSON.stringify(obj)], eopts);
@@ -75,47 +101,46 @@ var checkIt = function(){
       child.stderr.on('data', function (data) {
         console.error(data+"");
       });
-      
+
       child.on('exit', function (code) {
-        process.exit(code);
+        logErrorAndExit(4, [code]);
       });
     }, 500);
   }
 };
 
+
+
 http.createServer(function (req, res) {
   if (!lock_me) {
     var url = req.url.substr(1).split('=');
     if (url.length < 2) {
-      console.error("Unknown information received by IS manager", req.url);
-      process.exit(1);
+      logErrorAndExit(2, [req.url]);
     }
 
     if (!targets.hasOwnProperty(url[0]) || isNaN(parseInt(url[1])) || parseInt(url[1]) == 0) {
-      console.error("Unknown information received by IS manager", req.url);
-      process.exit(1);
+      logErrorAndExit(2, [req.url]);
     }
 
     var name = url[0];
 
-    if (name == "nodes" || name == "droid" || name == "cancel") {
-      if (name == "cancel") {
+    if (name === 'nodes' || name === 'droid' || name === 'cancel') {
+      if (name === 'cancel') {
         url[1] = 0;
       }
 
-      if (name == "nodes") {
+      if (name === 'nodes') {
         targets.nodes = parseInt(url[1]);
         targets.droid = 0;
 
-        if (targets.nodes == 0) {
-          console.error("No android test node available");
-          process.exit(1);
+        if (targets.nodes === 0) {
+          logErrorAndExit(3);
         }
       } else {
         targets.nodes--;
         targets.droid += parseInt(url[1]);
 
-        if (targets.nodes == 0) {
+        if (targets.nodes === 0) {
           targets.android = targets.droid;
           delete targets.nodes;
           delete targets.droid;
