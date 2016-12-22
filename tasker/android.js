@@ -195,21 +195,31 @@ var runAndroidApp = function (class_name, deviceId, deviceName, cb) {
   var lg = new grabLogcat(class_name, deviceId, deviceName, function (err, _this) {
     logcatIndex++;
     if (!err) {
-      var cmd = 'adb -s "' + deviceId + '" shell am start -n ' + class_name + "/" + class_name + ".MainActivity";
+      var cmd = 'adb -s "' + deviceId + '" shell am start -n ' +
+        class_name + '/' + class_name + '.MainActivity';
       var res = sync(cmd);
-      if (res.exitCode != 0) {
-        var str = "\n" + res.out;
-        if (str.length > 512) str = str.substr(0, 512);
-        logme("Error: problem running Android apk(" + class_name + ") on device " + deviceName, str, "");
+      if (res.exitCode !== 0 ||
+          res.out.indexOf('Error') !== -1) {
+        var str = '\n' + res.out;
+        if (str.length > 512) {
+          str = str.substr(0, 512);
+        }
 
-        if (_this) _this.child.kill();
+        logme('Error: problem running Android apk(' +
+          class_name + ') on device ' + deviceName, str, '');
+
+        if (_this) {
+          _this.child.kill();
+        }
+
         cb(true, null);
         return false;
       }
-      logme("App was succesfully started on " + deviceId + "\n");
+
+      logme('App was succesfully started on ' + deviceId + '\n');
       cb(null);
     } else {
-      cb(err)
+      cb(err);
     }
   });
   lg.run();
