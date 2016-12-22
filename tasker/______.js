@@ -14,45 +14,61 @@ var eopts = {
   killSignal: 'SIGTERM'
 };
 
-var errors = [
-  'Unidentified target argument',
-  'Unknown information received by IS manager',
-  'No android test node available',
-  'jx install failed',
-  'index.js failed'
-];
+var errors = {
+  unidentifiedTargetArgument: {
+    message: 'Unidentified target argument',
+    code: 1
+  },
+  unknownInformationReceivedByISManager: {
+    message: 'Unknown information received by IS manager',
+    code: 2
+  },
+  androidNodeNotAvailable: {
+    message: 'No android test node available',
+    code: 3
+  },
+  jxInstallFailed: {
+    message: 'jx install failed',
+    code: 4
+  },
+  indexJsFailed: {
+    message: 'index.js failed',
+    code: 5
+  }
+};
 
-function logErrorAndExit(code, args) {
-  var message = errors[code-1];
-  if (message) {
-    console.error(errors[code-1], args);
+function logAndExit(error, args) {
+  if (error) {
+    console.error(error.message, args);
+
+    process.exit(error.code);
   } else {
     console.error(args);
-  }
 
-  process.exit(code);
+    process.exit(-1);
+  }
 }
 
 var target = process.argv[2];
 
-if (!(target == "ios" || target == "android" || target == "all")) {
-  logErrorAndExit(1, [target]);
+if (!(target === 'ios' || target === 'android' || target === 'all')) {
+  logAndExit(errors.unidentifiedTargetArgument, [target]);
 }
 
 var targets = {};
-if (target == "ios") {
-  targets["ios"] = 0;
-} else if (target == "android") {
-  targets["android"] = 0;
+if (target === 'ios') {
+  targets.ios = 0;
+} else if (target === 'android') {
+  targets.android = 0;
   targets.nodes = 0;
   targets.droid = 0;
 } else {
-  targets["ios"] = 0;
-  targets["android"] = 0;
+  targets.ios = 0;
+  targets.android = 0;
   targets.nodes = 0;
   targets.droid = 0;
 }
-targets.cancel=1;
+targets.cancel = 1;
 
 var http = require('http');
 var lock_me = false;
@@ -61,7 +77,7 @@ var checkIt = function(){
   var no_exit = false;
   for (var o in targets) {
     if (targets.hasOwnProperty(o)) {
-      if (targets[o] == 0) {
+      if (targets[o] === 0) {
         no_exit = true;
         break;
       }
@@ -71,39 +87,38 @@ var checkIt = function(){
   if (!no_exit) {
     lock_me = true;
     var obj = {devices: targets};
-    console.log("IS Running:");
+    console.log('IS Running:');
 
     console.log('Running \'jx install\'');
     var out = execSync('cd ' + __dirname + '; jx install');
 
-    if (out.exitCode != 0) {
-      console.log(out.out, "\n");
+    if (out.exitCode !== 0) {
       // If jx install fails, we can't run the server
       // and without the server, the tests wouldn't run
-      logErrorAndExit(3, [out.exitCode, out.out]);
+      logAndExit(errors.jxInstallFailed, [out.exitCode, out.out]);
     } else {
-      console.log("Skipping the log for NPM since the exitCode was 0");
+      console.log('Skipping the log for NPM since the exitCode was 0');
     }
 
     obj.devices.cancel = 0;
     delete obj.devices.cancel;
 
-    console.log(">", process.argv[0] + " index.js " + JSON.stringify(obj));
+    console.log('>', process.argv[0] + ' index.js ' + JSON.stringify(obj));
 
     // give a small break for a potential kill SIGNAL from server
     setTimeout(function(){
-      var child = spawn(process.argv[0], ["index.js", JSON.stringify(obj)], eopts);
+      var child = spawn(process.argv[0], ['index.js', JSON.stringify(obj)], eopts);
 
       child.stdout.on('data', function (data) {
-        console.log(data+"");
+        console.log(data+'');
       });
 
       child.stderr.on('data', function (data) {
-        console.error(data+"");
+        console.error(data+'');
       });
 
       child.on('exit', function (code) {
-        logErrorAndExit(4, [code]);
+        logAndExit(errors.indexJsFailed, [code]);
       });
     }, 500);
   }
@@ -115,11 +130,13 @@ http.createServer(function (req, res) {
   if (!lock_me) {
     var url = req.url.substr(1).split('=');
     if (url.length < 2) {
-      logErrorAndExit(2, [req.url]);
+      logAndExit(errors.unknownInformationReceivedByISManager, [req.url]);
     }
 
-    if (!targets.hasOwnProperty(url[0]) || isNaN(parseInt(url[1])) || parseInt(url[1]) == 0) {
-      logErrorAndExit(2, [req.url]);
+    if (!targets.hasOwnProperty(url[0]) ||
+        isNaN(parseInt(url[1])) ||
+        parseInt(url[1]) === 0) {
+      logAndExit(errors.unknownInformationReceivedByISManager, [req.url]);
     }
 
     var name = url[0];
@@ -134,7 +151,7 @@ http.createServer(function (req, res) {
         targets.droid = 0;
 
         if (targets.nodes === 0) {
-          logErrorAndExit(3);
+          logAndExit(errors.androidNodeNotAvailable);
         }
       } else {
         targets.nodes--;
