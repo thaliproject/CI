@@ -23,9 +23,9 @@ var errors = [
 ];
 
 function logErrorAndExit(code, args) {
-  var message = errors[code-1];
+  var message = errors[code - 1];
   if (message) {
-    console.error(errors[code-1], args);
+    console.error(message, args);
   } else {
     console.error(args);
   }
@@ -77,10 +77,9 @@ var checkIt = function(){
     var out = execSync('cd ' + __dirname + '; jx install');
 
     if (out.exitCode != 0) {
-      console.log(out.out, "\n");
       // If jx install fails, we can't run the server
       // and without the server, the tests wouldn't run
-      logErrorAndExit(3, [out.exitCode, out.out]);
+      logErrorAndExit(4, [out.exitCode, out.out]);
     } else {
       console.log("Skipping the log for NPM since the exitCode was 0");
     }
@@ -103,7 +102,7 @@ var checkIt = function(){
       });
 
       child.on('exit', function (code) {
-        logErrorAndExit(4, [code]);
+        logErrorAndExit(5, [code]);
       });
     }, 500);
   }

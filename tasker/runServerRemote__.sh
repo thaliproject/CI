@@ -23,8 +23,6 @@ trap 'log_error $LINENO' ERR
 ### END - JXcore Test Server   --------
 
 cd ~/Test/{{SERVER_LOCATION}}
-# I don't know the reason why it fails
-# so we're skipping errors for 'sudo pkill jx'
-# MUST be fixed
-! sudo pkill jx
+# killing JXcore if it already running
+pgrep jx && sudo pkill jx
 sudo jx ______.js {{TARGET}}
