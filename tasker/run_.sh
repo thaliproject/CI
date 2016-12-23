@@ -8,7 +8,7 @@ NORMAL_COLOR='\033[0m'
 RED_COLOR=''
 
 OUTPUT() {
-  echo -e "${RED_COLOR}$BASH_COMMAND CI FAILED - sign_ios.sh failure${NORMAL_COLOR}"
+  echo -e "${RED_COLOR}$BASH_COMMAND CI FAILED - run.sh failure${NORMAL_COLOR}"
 }
 
 set -euo pipefail

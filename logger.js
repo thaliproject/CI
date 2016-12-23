@@ -8,8 +8,7 @@
 const chalk = require('chalk');
 const fs = require('fs');
 
-const util = require('util');
-const format = util.format;
+const { format } = require('util');
 
 function Logger(options) {
   if (options) {
@@ -20,7 +19,7 @@ function Logger(options) {
 Logger.prototype._log = function (logger, style, messages) {
   const filePath = this._filePath;
   if (filePath) {
-    const message = format.apply(null, messages) + '\n';
+    const message = format(...messages) + '\n';
     fs.appendFileSync(filePath, message);
   }
 
@@ -30,12 +29,13 @@ Logger.prototype._log = function (logger, style, messages) {
       .map((e) => style(e));
   }
 
-  const now = new Date().toISOString()
-    .replace(/T/, ' ')
-    .replace(/.[^.]+$/, '');
+  const now = new Date()
+    .toISOString()
+    .replace(/TZ/, ' ')
+    .trim();
   newMessages.unshift(now);
 
-  logger.apply(null, newMessages);
+  logger(...newMessages);
 };
 
 Logger.prototype.error = function() {

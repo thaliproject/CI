@@ -5,9 +5,9 @@
 
 'use strict';
 
-var db = require('./../db_actions');
+var db = require('../db_actions');
 var fs = require('fs');
-var git = require('./../hook/git_actions');
+var git = require('../hook/git_actions');
 var path = require('path');
 
 var Logger = require('../logger');
