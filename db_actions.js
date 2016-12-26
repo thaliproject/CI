@@ -63,34 +63,6 @@ exports.updateHook = function (obj) {
   server.saveDatabase();
 };
 
-function find(arr, props, vals) {
-  for (var i = 0; i < arr.length; i++) {
-    var marker = 0;
-    for (var j = 0; j < props.length; j++) {
-      if (arr[i][j] === vals[j]) {
-        marker++;
-      }
-    }
-
-    if (marker === props.length) {
-      return i;
-    }
-  }
-
-  return -1;
-}
-
-function remove(arr, index) {
-  var tmp = [];
-  for (var i = 0; i < arr.length; i++) {
-    if (i !== index) {
-      tmp.push(arr[i]);
-    }
-  }
-
-  return tmp;
-}
-
 exports.updateJob = function (job) {
   // grab job list
   var obj = test.findObject({pt_zero: 0});
