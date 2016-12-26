@@ -98,9 +98,8 @@ function runApp(appId, device, timeout) {
   });
 }
 
-// TODO: see original implementation
 function runInstrumentationTests(device, appId, runner) {
-  const deviceId = device.deviceId; // TODO: is this correct call ?
+  const deviceId = device.deviceId;
   const deviceName = device.deviceName;
 
   return exec(
