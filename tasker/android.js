@@ -438,16 +438,18 @@ function timeoutKill() {
 // set timeout
 var timeout = job.config.timeout ? job.config.timeout * 1000 : 300000;
 var logcatCounter = 0;
-var interTimer = setInterval(function(){
-  if (logcatIndex == arrDevices.length) {
-    clearInterval(interTimer);
-    setTimeout(function () {
-      timeoutKill();
-    }, timeout + 10000);
-  } else {
-    if (logcatCounter > 90) {
-      timeoutKill();
+setTimeout(function () {
+  var interTimer = setInterval(function () {
+    if (logcatIndex == arrDevices.length) {
+      clearInterval(interTimer);
+      setTimeout(function () {
+        timeoutKill();
+      }, timeout + 10000);
+    } else {
+      if (logcatCounter > 90) {
+        timeoutKill();
+      }
     }
-  }
-  logcatCounter++;
-}, 1000);
+    logcatCounter++;
+  }, 1000);
+}, runTimeout);
