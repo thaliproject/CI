@@ -1,12 +1,21 @@
-require('../logger');
-var git = require('./../hook/git_actions');
-var db = require('./../db_actions');
-var path = require('path');
+//  Copyright (C) Microsoft. All rights reserved.
+//  Licensed under the MIT license. See LICENSE.txt file in the project root
+//  for full license information.
+//
+
+'use strict';
+
+var db = require('../db_actions');
 var fs = require('fs');
+var git = require('../hook/git_actions');
+var path = require('path');
+
+var Logger = require('../logger');
+var logger = new Logger();
 
 exports.validateConfig = function (user, repo, json) {
   if (!json) {
-    logme("Error: json is null!", "red");
+    logger.error("Error: json is null!");
     return false;
   }
 
@@ -143,11 +152,11 @@ exports.validateConfig = function (user, repo, json) {
 
 exports.createJob = function (user, repo, branch, json, opts) {
   if (user != "thaliproject" && user != "obastemur") {
-    logme("Unkown repo:", user + "/" + repo, "(discarding job)", "red");
+    logger.error("Unkown repo:", user + "/" + repo, "(discarding job)");
   } else {
     // see if we have the hook for the user/repo
     if (!db.getHookInfo(user + "/" + repo)) {
-      logme("Unkown repo:", user + "/" + repo, "(discarding job)", "red");
+      logger.error("Unkown repo:", user + "/" + repo, "(discarding job)");
 
       if (opts.prNumber) {
         opts.body = "Discarding the PR Testing JOB. Looks like Repository records are changed. Please re-define the WebHook for testing";
@@ -173,7 +182,7 @@ var logIssue = function (job, title, body) {
     };
     git.createComment(opts, function (err, res) {
       if (err) {
-        logme("Error: PR commit failed", err, opts);
+        logger.error("Error: PR commit failed", err, opts);
       }
     });
   } else {
@@ -218,7 +227,7 @@ var grabLogs = function (job, target) {
                 var fname = git.commitFile(job, dirs[i] + "_" + o, "Test " + job.uqID + "_" +dirs[i] + "_"
                   + o + " Logs", "\n```\n" + str + "\n```\n", function (err, res, url) {
                   if (err) {
-                    logme("Failed to create a device log gist. (" + dirs[i] + "_" + o + ")", err + "\n" + res, "red");
+                    logger.error("Failed to create a device log gist. (" + dirs[i] + "_" + o + ")", err + "\n" + res);
                   }
 
                 }, true);
@@ -251,7 +260,7 @@ var grabLogs = function (job, target) {
             + o + " Logs", "\n```\n" + str + "\n```\n", function (err, res, url) {
               if (err) {
                 if ((err+"").indexOf("Already on 'master'")<0) {
-                  logme("Failed to create a device log gist. (IOS_" + o + ")\n", err + "\n" + res, "red");
+                  logger.error("Failed to create a device log gist. (IOS_" + o + ")\n", err + "\n" + res);
                 }
               }
 
@@ -332,7 +341,7 @@ exports.commitLog = function (uqID) {
 
   git.commitFile(log.job, "test_log", "Test " + uqID + " Logs", str, function (err, res, url) {
     if (err) {
-      logme("Failed to create a fail gist.", err + "\n" + res, "red");
+      logger.error("Failed to create a fail gist.", err + "\n" + res);
     } else {
       if (failed)
         logIssue(log.job, "Test " + uqID + "("+log.job.commitIndex+") has failed", "See " + url + " for the fail logs");

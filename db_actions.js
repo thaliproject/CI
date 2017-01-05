@@ -1,15 +1,24 @@
-var loki = require('lokijs');
-var server = new loki('server.json');
-var local = new loki('config.json');
+//  Copyright (C) Microsoft. All rights reserved.
+//  Licensed under the MIT license. See LICENSE.txt file in the project root
+//  for full license information.
+//
+
+'use strict';
+
 var fs = require('fs');
-var virtual = require('./builder/virtual');
+var loki = require('lokijs');
+var local = new loki('config.json');
+var server = new loki('server.json');
+
+var Logger = require('./logger');
+var logger = new Logger();
 
 exports.nodeCount = 2;
 
 var config, hook, test;
 
 if (!fs.existsSync('config.json')) {
-  console.log("Creating config.json")
+  console.log('Creating config.json');
   local.addCollection('config');
   // local.getCollection('config').insert({name: "GithubUser", username: "obastemur", password: ""})
   local.saveDatabase();
@@ -17,7 +26,7 @@ if (!fs.existsSync('config.json')) {
 
 
 if (!fs.existsSync('server.json')) {
-  console.log("Creating server.json")
+  console.log('Creating server.json');
   server.addCollection('hooks');
   server.addCollection('test');
   server.saveDatabase();
@@ -26,21 +35,22 @@ if (!fs.existsSync('server.json')) {
 exports.getGithubUser = function (cb) {
   local.loadDatabase({}, function () {
     config = local.getCollection('config');
-    var arr = config.find({name: "GithubUser"})
+    var arr = config.find({name: 'GithubUser'});
+
     server.loadDatabase({}, function () {
       hook = server.getCollection('hooks');
       if (!hook) {
-        console.error("server.json is empty!");
+        console.error('server.json is empty!');
         process.exit(1);
       }
       test = server.getCollection('test');
       cb(arr.length ? arr[0] : null);
-    })
+    });
   });
 };
 
-exports.getHookInfo = function (repo_name) {
-  return hook.findObject({repository: repo_name});
+exports.getHookInfo = function (repoName) {
+  return hook.findObject({repository: repoName});
 };
 
 exports.saveHook = function (opts) {
@@ -52,32 +62,6 @@ exports.updateHook = function (obj) {
   hook.update(obj);
   server.saveDatabase();
 };
-
-function find(arr, props, vals) {
-  for (var i = 0; i < arr.length; i++) {
-    var marker = 0;
-    for (var j = 0; j < props.length; j++) {
-      if (arr[i][j] == vals[j]) {
-        marker++;
-      }
-    }
-
-    if (marker == props.length)
-      return i;
-  }
-
-  return -1;
-}
-
-function remove(arr, index) {
-  var tmp = [];
-  for (var i = 0; i < arr.length; i++) {
-    if (i != index)
-      tmp.push(arr[i])
-  }
-
-  return tmp;
-}
 
 exports.updateJob = function (job) {
   // grab job list
@@ -92,7 +76,7 @@ exports.updateJob = function (job) {
 
   var q = obj.jobsQueue;
   for (var i = 0; i < q.length; i++) {
-    if (q[i].uqID == job.uqID) {
+    if (q[i].uqID === job.uqID) {
       q[i] = job;
       break;
     }
@@ -121,7 +105,7 @@ exports.removeJob = function (job) {
   var q = obj.jobsQueue;
   var arr = [];
   for (var i = 0; i < q.length; i++) {
-    if (q[i].uqID != job.uqID) {
+    if (q[i].uqID !== job.uqID) {
       arr.push(q[i]);
     }
   }
@@ -140,7 +124,9 @@ exports.removeJob = function (job) {
 // result can be null (in case the box is looking for a new job)
 exports.getJob = function (isBuilder) {
   // give a job to an empty node
-  if (!test) return {noJob: true};
+  if (!test) {
+    return {noJob: true};
+  }
 
   // grab job list
   var obj = test.findObject({pt_zero: 0});
@@ -162,11 +148,15 @@ exports.getJob = function (isBuilder) {
   var q = obj.jobsQueue;
   for (var i = 0; i < q.length; i++) {
     if (!isBuilder) {
-      if (!q[i].compiled) continue;
+      if (!q[i].compiled) {
+        continue;
+      }
 
       return q[i];
     } else {
-      if (q[i].compiled) continue;
+      if (q[i].compiled) {
+        continue;
+      }
 
       return q[i];
     }
@@ -189,7 +179,7 @@ exports.hasJob = function(prId, commitIndex) {
   var uid = prId + commitIndex;
   var q = obj.jobsQueue;
   for (var i = 0; i < q.length; i++) {
-    if (q[i].uqID == uid) {
+    if (q[i].uqID === uid) {
       return true;
     }
   }
@@ -213,7 +203,7 @@ exports.addJob = function (user, repo, branch, opts, json) {
     prId: opts.prId, // prId or hookId
     prNumber: opts.prNumber, // null or prNumber
     sender: opts.sender, // sender user
-    title: opts.title.replace(/[:\)\(#;+*]/g, "_"), // repo or pr title
+    title: opts.title.replace(/[:\)\(#;+*]/g, '_'), // repo or pr title
     target: json.target, // all, ios, android
     priority: json.priority, // normal, asap, now
     compiled: false, // whether osx VM compiled the application file or not
@@ -223,13 +213,13 @@ exports.addJob = function (user, repo, branch, opts, json) {
   };
 
   // locate based on priority
-  if (json.priority == "now" || json.priority == "asap") {
+  if (json.priority === 'now' || json.priority === 'asap') {
     obj.jobsQueue.unshift(job);
   } else {
     obj.jobsQueue.push(job);
   }
 
-  logme("New Test", job.user, job.repo, job.prId, "green");
+  logger.info('New Test', job.user, job.repo, job.prId);
 
   // update collection
   test.update(obj);
@@ -237,8 +227,9 @@ exports.addJob = function (user, repo, branch, opts, json) {
   // save to file system
   server.saveDatabase();
 
-  if (json.priority == "now" || json.priority == "asap")
+  if (json.priority === 'now' || json.priority === 'asap') {
     return 1;
+  }
 
   return obj.jobsQueue.length;
 };
@@ -246,7 +237,7 @@ exports.addJob = function (user, repo, branch, opts, json) {
 exports.addGithubUser = function (uname, pass) {
   local.loadDatabase({}, function () {
     config = local.getCollection('config');
-    config.insert({name: "GithubUser", username: uname, password: pass});
+    config.insert({name: 'GithubUser', username: uname, password: pass});
     local.saveDatabase();
   });
 };

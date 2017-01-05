@@ -1,9 +1,16 @@
-require('../logger');
+//  Copyright (C) Microsoft. All rights reserved.
+//  Licensed under the MIT license. See LICENSE.txt file in the project root
+//  for full license information.
+//
+
+'use strict';
+
 var fs = require('fs');
 var path = require('path');
 var exec = require('child_process').exec;
-var sync = jxcore.utils.cmdSync;
+var execSync = jxcore.utils.cmdSync;
 var spawn = require('child_process').spawn;
+
 var eopts = {
   encoding: 'utf8',
   timeout: 0,
@@ -24,10 +31,10 @@ var apk_name = "android_0_" + job.uqID + ".apk";
 function CLEANUP() {
   //cleanup target
   for (var i = 0; i < job.nodes.length; i++) {
-    sync("cd " + __dirname + ";ssh pi@" + job.nodes[i].ip + " 'bash -s' < cleanup.sh");
+    execSync("cd " + __dirname + ";ssh pi@" + job.nodes[i].ip + " 'bash -s' < cleanup.sh");
   }
 
-  sync("cd " + __dirname + ";rm reset.sh;rm run.sh");
+  execSync("cd " + __dirname + ";rm reset.sh;rm run.sh");
 }
 
 var logs_copied = false;
@@ -42,8 +49,8 @@ function COPY_LOGS() {
   if (logs_copied) return;
   logs_copied = true;
   for (var i = 0; i < job.nodes.length; i++) {
-    sync("mkdir -p " + __dirname + "/results/" + job.uqID + "/" + job.nodes[i].name + "/");
-    var res = sync("scp pi@" + job.nodes[i].ip + ":~/*.json " + __dirname + "/results/" + job.uqID + "/" + job.nodes[i].name + "/");
+    execSync("mkdir -p " + __dirname + "/results/" + job.uqID + "/" + job.nodes[i].name + "/");
+    var res = execSync("scp pi@" + job.nodes[i].ip + ":~/*.json " + __dirname + "/results/" + job.uqID + "/" + job.nodes[i].name + "/");
     if (res.exitCode)
       console.error("CopyLog Failed ("+job.nodes[i].name+"):", res.out);
   }
@@ -56,14 +63,14 @@ fs.writeFileSync(__dirname + "/reset.sh", reset)
 //cleanup target
 var retry = [];
 for (var i = 0; i < job.nodes.length; i++) {
-  var res = sync("cd " + __dirname + ";ssh pi@" + job.nodes[i].ip + " 'bash -s' < reset.sh");
+  var res = execSync("cd " + __dirname + ";ssh pi@" + job.nodes[i].ip + " 'bash -s' < reset.sh");
   if (res.exitCode != 0) {
     retry.push(job.nodes[i]);
   }
 }
 
 for (var i = 0; i < retry.length; i++) {
-  var res = sync("cd " + __dirname + ";ssh pi@" + retry[i].ip + " 'bash -s' < reset.sh");
+  var res = execSync("cd " + __dirname + ";ssh pi@" + retry[i].ip + " 'bash -s' < reset.sh");
   if (res.exitCode != 0) {
     console.error("error while trying to reset node on ", retry[i]," details:", res.out, "\n");
     process.exit(1);
@@ -74,7 +81,7 @@ for (var i = 0; i < retry.length; i++) {
 var apk_path = "../builder/builds/" + job.uqID + "/build_android/" + apk_name;
 //copy apk
 for (var i = 0; i < job.nodes.length; i++) {
-  var res = sync("cd " + __dirname + ";scp " + apk_path + " pi@" + job.nodes[i].ip
+  var res = execSync("cd " + __dirname + ";scp " + apk_path + " pi@" + job.nodes[i].ip
     + ":~/test/builder/builds/" + job.uqID + "/build_android/" + apk_name);
   if (res.exitCode != 0) {
     console.error("Error while transferring APK:", res.out);
@@ -85,7 +92,7 @@ for (var i = 0; i < job.nodes.length; i++) {
 
 //copy android.js script
 for (var i = 0; i < job.nodes.length; i++) {
-  var res = sync("cd " + __dirname + ";scp android.js pi@" + job.nodes[i].ip + ":~/test/tasker/");
+  var res = execSync("cd " + __dirname + ";scp android.js pi@" + job.nodes[i].ip + ":~/test/tasker/");
   if (res.exitCode != 0) {
     console.error("copy android.js:", res.out);
     process.exit(1);
@@ -95,9 +102,9 @@ for (var i = 0; i < job.nodes.length; i++) {
 
 //copy logger.js script
 for (var i = 0; i < job.nodes.length; i++) {
-  var res = sync("cd " + __dirname + ";scp ../logger.js pi@" + job.nodes[i].ip + ":~/test/");
+  var res = execSync('cd ' + __dirname + ';scp ../logger.js pi@' + job.nodes[i].ip + ':~/test/');
   if (res.exitCode != 0) {
-    console.error("copy logger.js:", res.out);
+    console.error('copy logger.js:', res.out);
     process.exit(1);
     return;
   }

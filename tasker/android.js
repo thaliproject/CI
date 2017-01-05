@@ -1,448 +1,284 @@
-require('../logger').toFile("../../console.json");
-var fs = require('fs');
-var path = require('path');
-var exec = require('child_process').exec;
-var sync = jxcore.utils.cmdSync;
-var spawn = require('child_process').spawn;
-var eopts = {
-  encoding: 'utf8',
-  timeout: 0,
-  maxBuffer: 1e8,
-  killSignal: 'SIGTERM'
+//  Copyright (C) Microsoft. All rights reserved.
+//  Licensed under the MIT license. See LICENSE.txt file in the project root
+//  for full license information.
+//
+
+'use strict';
+
+const exec = require('child-process-promise').exec;
+const os = require('os');
+const fs = require('fs-extra-promise');
+const path = require('path');
+
+const Buffer = require('buffer').Buffer;
+const Logger = require('../logger');
+const logger = new Logger({ filePath: '../../console.json' });
+
+const Logcat = require('../tools/android/logcat');
+const Promise = require('bluebird');
+
+const AndroidDebugBridge = require('../tools/android/adb');
+const adb = new AndroidDebugBridge(logger);
+
+const config = {
+  bootRetries: 15,
+  bootDelay: 10000
 };
 
-if (!process.argv[2]) {
-  logme("Needs argument!");
-  process.exit(1);
-  return;
-}
+function installApp(apkPath, appId, device) {
+  const deviceId = device.deviceId;
+  const sdkVersion = device.sdkVersion;
 
-var job = JSON.parse(new Buffer(process.argv[2], "base64") + "");
-var nodeId = 0;
+  return adb.installApp(apkPath, appId, deviceId)
+    .then(() => adb.listPackages(deviceId))
+    .then(() => {
+      if (sdkVersion > 22) {
+        logger.warn('SDK > 22. Granting ACCESS_COARSE_LOCATION permission.');
 
-// out: [ [ '8a09fc3c', 'device' ] ]
-var getAndroidDevices = function () {
-  var res = sync("adb devices");
-  var i;
-
-  if (res.exitCode != 0) {
-    logme("Error: getAndroidDevices failed", res.out);
-    process.exit(1);
-    return;
-  }
-
-  var devs = [];
-  res = res.out.split('\n');
-  if (res[0].indexOf("List of devices") == 0) {
-    for (i = 1; i < res.length; i++) {
-      if (res[i].trim().length == 0) continue;
-      if (res[i].indexOf('offline') > 0 ||
-          res[i].indexOf('unauthorized') > 0 ||
-          res[i].indexOf('no permissions') > 0) {
-        logme("Warning: Phone " + res[i] + " - CANNOT BE USED");
-        continue; // phone offline/unauthorized/no debug permissions
+        return  adb.grantPermission(
+          appId, deviceId, 'android.permission.ACCESS_COARSE_LOCATION');
       }
-      var dev = res[i].split('\t');
-      devs.push(dev);
-    }
-  }
-
-  if (devs.length == 0) {
-    logme("Error: No Android device found.", "");
-    process.exit(1);
-    return;
-  }
-
-  var manufacturer, model, sdkVersion,
-      devices = [];
-  for (i = 0; i < devs.length; i++) {
-    manufacturer = sync("adb -s " + devs[i][0] + " shell getprop ro.product.manufacturer");
-    model = sync("adb -s " + devs[i][0] + " shell getprop ro.product.model");
-    sdkVersion = sync("adb -s " + devs[i][0] + " shell getprop ro.build.version.sdk");
-
-    devices.push({
-      deviceId: devs[i][0],
-      deviceName: manufacturer.out.replace("\n", "").trim() + "-" + model.out.replace("\n", "").trim(),
-      sdkVersion: sdkVersion.out.replace("\n", "").trim()
     })
-  }
+    .catch((error) => {
+      const message = `Failed deploying '${appId}' Android apk ${apkPath}
+        to device ${deviceId}\nerror: ` + error ? `\n${error}` : '';
 
-  return devices;
-};
+      return Promise.reject(new Error(message));
+    });
+}
 
-var arrDevices = getAndroidDevices();
-var builds = path.join(__dirname, "../builder/builds/" + job.uqID + "/build_android");
-var appCounter = 0;
-var testFailed = false;
+function runApp(appId, device, timeout) {
+  const deviceId = device.deviceId;
+  const deviceName = device.deviceName;
 
-var deployAndroid = function (apk_path, device_name, class_name, isMarshmallow) {
-  var grantPermission = '';
-  if (isMarshmallow) {
-    grantPermission = '&& adb -s ' + device_name + ' shell pm grant com.test.thalitest android.permission.ACCESS_COARSE_LOCATION';
-    logme("Marshmallow device. Granting ACCESS_COARSE_LOCATION permission.");
-  }
+  const logcat = new Logcat(logger);
 
-  var cmd = 'adb -s ' + device_name + ' install -r ' + apk_path +
-      '&& adb -s ' + device_name + ' shell pm list packages' + grantPermission;
+  const stopWithError = function (error) {
+    logger.info(error);
 
-  var res = null;
-  var failureReasonIndex = -1;
-  var failureReason = '';
-  exec(cmd, eopts, function (err, stdout, stderr) {
-    if (err ||
-        stdout.indexOf(class_name) === -1 ||
-        stdout.indexOf('Success') === -1) {
-      res = ('Error: problem deploying Android apk(' + apk_path + ') to device ' + device_name + (err ? ('\n' + err) : ''));
-      failureReasonIndex = stdout.indexOf('Failure');
-      if (failureReasonIndex > -1) {
-        failureReason = stdout.substring(failureReasonIndex);
-        failureReason = failureReason.substring(0, failureReason.indexOf('\n'));
-        res += '\n' + failureReason;
-      }
-    } else {
-      logme('App was succesfully deployed to ' + device_name + '\n');
-    }
+    logcat.stop();
+    cleanupDevice(device, appId);
+  };
 
-    jxcore.utils.continue();
-  });
+  return new Promise((resolve) => {
+    logcat.emmiter.on('start', () => {
+      exec(`adb -s "${deviceId}" shell am start -n ${appId}/${appId}.MainActivity`)
+        .catch(function (error) {
+          const newMessage =
+            `Running Android app failed. apk: ${appId}, device: ${deviceName}, error: ${error}`;
+          const newError = new Error(newMessage);
+          stopWithError(newError);
 
-  jxcore.utils.jump();
+          return;
+        })
+        .then((result) => {
+          const exitCode = result.childProcess.exitCode;
+          const stdout = result.stdout;
 
-  return res;
-};
+          if (exitCode !== 0 ||
+              stdout.indexOf('Error') !== -1) {
+            var message = stdout.toString();
+            if (message > 512) {
+              message = message.substr(0, 512);
+            }
 
-var logArray = {};
-var grabLogcat = function (class_name, deviceId, deviceName, cb) {
-  this.deviceId = deviceId;
-  this.class_name = class_name;
-  this.deviceName = deviceName;
-  this.cb = cb;
-  var _this = this;
-
-  this.run = function () {
-    var child = spawn('adb', ['-s', _this.deviceId, 'logcat', '-v', 'threadtime'], eopts);
-    for (var i = 0; i < arrDevices.length; i++) {
-      if (arrDevices[i].deviceId == _this.deviceId) {
-        arrDevices[i].child = child;
-        break;
-      }
-    }
-
-    _this.child = child;
-    _this.child.deviceId = _this.deviceId;
-    logArray[_this.deviceName] = [];
-
-    var firstLog = true;
-    child.stdout.on('data', function (data) {
-      if (firstLog) {
-        firstLog = false;
-        // logcat in place run app
-        _this.cb(null, _this);
-      }
-      data = data + "";
-
-      if (data.indexOf("****TEST_LOGGER:[PROCESS_ON_EXIT") >= 0) {
-        if (data.indexOf("****TEST_LOGGER:[PROCESS_ON_EXIT_FAILED]****") >= 0)
-          _this.child.failed = true;
-
-        if (_this.child.failed) {
-          logme("STOP log received from " + _this.deviceId + "\nTest has FAILED\n");
-        } else {
-          logme("STOP log received from " + _this.deviceId + "\nTest has SUCCEED\n");
-        }
-
-        _this.killing = true;
-        stopAndroidApp(_this.class_name, _this.deviceId, function () {
-          _this.child.kill();
+            const error = new Error(message);
+            stopWithError(error);
+          } else {
+            logger.info(`Running Android app success. device: ${deviceId}`);
+          }
         });
-      }
-
-      logArray[_this.deviceName].push(data);
+    });
+    logcat.emmiter.on('complete', (result) => {
+      cleanupDevice(device, appId);
+      resolve(result);
     });
 
-    child.stderr.on('data', function (data) {
-      if (firstLog) {
-        firstLog = false;
-        // logcat in place run app
-        _this.cb(null, _this);
+    logcat.start(appId, deviceId, deviceName, timeout);
+  });
+}
+
+function runInstrumentationTests(device, appId, runner) {
+  const deviceId = device.deviceId;
+  const deviceName = device.deviceName;
+
+  return exec(
+    `adb -s "${deviceId}" shell am instrument -w ${appId}/${runner}`)
+    .then((result) => {
+
+      if (result.stdout.indexOf('FAILURES!!!') > -1 ||
+          result.stdout.indexOf('INSTRUMENTATION_CODE: 0') > -1) {
+        const error = new Error(
+          `Failed running Android instrumentation tests (${appId}) on device ${deviceName}`);
+
+        return Promise.reject(error);
       }
 
-      logArray[_this.deviceName].push(data + "");
+      return result;
     });
+}
 
-    child.on('exit', function (code) {
-      if (_this.killing) {
-        logme("Device test finished on", _this.deviceId, "");
+function cleanupDevice(device, appId) {
+  const deviceId = device.deviceId;
+
+  return adb.stopApp(appId, deviceId)
+    .then(() => adb.uninstallApp(appId, deviceId))
+    .then(() => adb.reboot(deviceId));
+}
+
+function cleanupDevices(devices, appId) {
+  return Promise.reduce(devices, (cleanDevices, device) => {
+    return cleanupDevice(device, appId)
+      .then(() => cleanDevices.concat([device]));
+  }, []);
+}
+
+function runTests() {
+  if (!process.argv[2]) {
+    logger.error('Needs argument!');
+    process.exit(1);
+    return;
+  }
+
+  const bootRetries = config.bootRetries;
+  const bootDelay = config.bootDelay;
+
+  const job = JSON.parse(new Buffer(process.argv[2], 'base64') + '');
+  const nodeId = 0;
+
+  const appId = job.config.csname.android;
+  const className = job.config.csname.android;
+  const serverDir = job.config.serverScript;
+  const instrumentationTestRunner = job.config.instrumentationTestRunner;
+  const timeout = job.config.timeout ? job.config.timeout * 1000 : 300000;
+  const jobUID = job.uqID;
+  const buildsDir = path.join(
+    __dirname, '..', 'builder', 'builds', jobUID, 'build_android');
+  const appPath = path.join(
+    buildsDir, `android_${nodeId}_${jobUID}.apk`);
+  const logsPath = path.join(
+    __dirname, '..', '..', 'result_.json');
+
+  return adb.devices()
+    .then((devices) => {
+      return cleanupDevices(devices, appId)
+        .then((cleanDevices) => [devices, cleanDevices]);
+    })
+    .then(([devices, cleanDevices]) => {
+      if (cleanDevices.length !== devices.length) {
+        const error = new Error(
+          `${cleanDevices.length} of ${devices.length} cleaned.`);
+        return Promise.reject(error);
+      }
+
+      return [devices, cleanDevices];
+    })
+    .then(([devices, cleanDevices]) => {
+      return Promise.reduce(cleanDevices, (readyDevices, device) => {
+        return adb.isDeviceReady(device.deviceId, bootDelay, bootRetries)
+          .then((ready) => {
+            if (!ready) {
+              const error = new Error(`${device} isn't ready.`);
+              return Promise.reject(error);
+            }
+
+            return readyDevices.concat([device]);
+          })
+          .then((readyDevices) => {
+            if (readyDevices.length !== devices.length) {
+              const error = new Error(
+                `${readyDevices.length} of ${devices.length} ready.`);
+              return Promise.reject(error);
+            }
+
+            return cleanDevices;
+          });
+      }, []);
+    })
+    .then((devices) => {
+      return Promise.reduce(devices, (readyDevices, device) => {
+        return installApp(appPath, appId, device)
+          .then(() => readyDevices.concat([device]));
+      }, [])
+      .then((readyDevices) => {
+        if (readyDevices.length !== devices.length) {
+          const error = new Error(
+            `Failed install app for ${readyDevices.length} of
+            ${devices.length}.`);
+          return Promise.reject(error);
+        }
+
+        return readyDevices;
+      });
+    })
+    .then((devices) => {
+      if (serverDir && serverDir.length) {
+        return exec(`curl 192.168.1.150:8060/droid=${devices.length}`)
+          .then(() => devices);
+      }
+
+      return devices;
+    })
+    .then((devices) => {
+      if (instrumentationTestRunner) {
+        const devicesWithLogs = devices
+          .map((device) => {
+            return runInstrumentationTests(
+              device, appId, instrumentationTestRunner)
+              .then(() =>  device);
+          });
+
+        return Promise.all(devicesWithLogs);
       } else {
-        _this.child.failed = true;
-        _this.cb("Unexpected exit on device " + _this.deviceId + " app:" + _this.class_name + " code:" + code);
+        const devicesWithLogs = devices
+          .map((device) => {
+            return runApp(appId, device, timeout)
+              .then((result) => {
+                device.failed = result.failed;
+                device.logs = result.logs;
 
-        logme("Child process exited with code " + code, "on device", _this.deviceId);
+                return device;
+              });
+          });
+
+        return Promise.all(devicesWithLogs);
       }
-      process.emit('mobile_ready', _this.deviceId, _this.child.failed);
+    })
+    .then((devices) => {
+      const result = devices
+        .reduce((accumulator, device) => {
+          accumulator.logs[device.deviceName] = device.logs;
+          accumulator.failed = accumulator.failed || device.failed;
+
+          return accumulator;
+        }, { logs: {}, failed: false });
+
+      cleanupDevices(devices, appId)
+        .catch((error) => {
+          logger.error(`Failed cleaning devices, error: ${error}`);
+        });
+
+      return fs.writeFileAsync(logsPath, JSON.stringify(result.logs))
+        .then(() => result.failed);
     });
-  }
-};
-
-var logcatIndex = 0;
-var runAndroidApp = function (class_name, deviceId, deviceName, cb) {
-  // clear logcat cache
-  sync('adb -s "' + deviceId + '" logcat -c');
-  // !! this may not work on some devices so don't check the failure
-  // CI restarts the devices on each run
-
-  //listen logcat on parallel
-  var lg = new grabLogcat(class_name, deviceId, deviceName, function (err, _this) {
-    logcatIndex++;
-    if (!err) {
-      var cmd = 'adb -s "' + deviceId + '" shell am start -n ' +
-        class_name + '/' + class_name + '.MainActivity';
-      var res = sync(cmd);
-      if (res.exitCode !== 0 ||
-          res.out.indexOf('Error') !== -1) {
-        var str = '\n' + res.out;
-        if (str.length > 512) {
-          str = str.substr(0, 512);
-        }
-
-        logme('Error: problem running Android apk(' +
-          class_name + ') on device ' + deviceName, str, '');
-
-        if (_this) {
-          _this.child.kill();
-        }
-
-        cb(true, null);
-        return false;
-      }
-
-      logme('App was succesfully started on ' + deviceId + '\n');
-      cb(null);
-    } else {
-      cb(err);
-    }
-  });
-  lg.run();
-};
-
-var runAndroidInstrumentationTests = function (class_name, runner, deviceIndex) {
-  var cmd = 'adb -s "' + arrDevices[deviceIndex].deviceId + '" shell am instrument -w ' + class_name + "/" + runner;
-  exec(cmd, eopts, function (err, stdout, stderr) {
-    if (err || stdout.indexOf("FAILURES!!!") > -1 || stdout.indexOf("INSTRUMENTATION_CODE: 0") > -1) {
-      testFailed = true;
-      arrDevices[deviceIndex].failed = true;
-      logme("Error: problem running Android instrumentation tests (" + class_name + ") on device " + arrDevices[deviceIndex].deviceName, "");
-    }
-    logArray[arrDevices[deviceIndex].deviceName] = [stdout, stderr];
-    arrDevices[deviceIndex].finished = true;
-    appCounter++;
-
-    if (appCounter === arrDevices.length) {
-      process.logsOnDisk = true;
-      try {
-        fs.writeFileSync(path.join(__dirname, "../../result_.json"), JSON.stringify(logArray));
-      } catch(e) {
-        logme("Could not write logs. Error:", e + "");
-      }
-
-      logme("Android instrumentation tests task is completed.", testFailed ? "[FAILED]" : "[SUCCESS]");
-      for (var i = 0; i < arrDevices.length; i++) {
-        stopAndroidApp(job.config.csname.android, arrDevices[i].deviceId);
-      }
-      process.exit(testFailed ? 1 : 0);
-    }
-  });
-  logcatIndex++;
-};
-
-var uninstallApp = function (class_name, device_name) {
-  var cmd = 'sleep 1;adb -s "' + device_name + '" uninstall ' + class_name;
-  var res = sync(cmd);
-  if (res.exitCode != 0) {
-    logme("Error: problem stopping Android apk(" + class_name + ") to device " + device_name, res.out, "");
-    return false;
-  }
-
-  return true;
-};
-
-var stopAndroidApp = function (class_name, device_name, cb) {
-  var cmd = 'adb -s "'+device_name+'" shell pm uninstall '+class_name
-    + ';adb -s "' + device_name + '" reboot';
-
-  if (cb) {
-    exec(cmd, eopts, cb);
-  } else {
-    sync(cmd);
-
-    return true;
-  }
-};
-
-process.on('SIGTERM', function(){
-  if(process.logsOnDisk) return;
-  try {
-    fs.writeFileSync(path.join(__dirname, "../../result_.json"), JSON.stringify(logArray));
-  } catch(e) {
-    logme("Could not write logs. Error:", e + "");
-  }
-  process.exit(1);
-});
-
-process.on('mobile_ready', function (deviceId, failed) {
-  for (var i = 0; i < arrDevices.length; i++) {
-    if (arrDevices[i].deviceId == deviceId) {
-      arrDevices[i].finished = true;
-      arrDevices[i].failed = failed;
-      if (failed)
-        testFailed = true;
-      break;
-    }
-  }
-  appCounter++;
-  if (appCounter < arrDevices.length) return;
-  appCounter = 0;
-
-  process.logsOnDisk = true;
-  try {
-    fs.writeFileSync(path.join(__dirname, "../../result_.json"), JSON.stringify(logArray));
-  } catch(e) {
-    logme("Could not write logs. Error:", e + "");
-  }
-
-  logme("Android task is completed.", testFailed ? "[FAILED]" : "[SUCCESS]");
-
-  for (var i = 0; i < arrDevices.length; i++) {
-    stopAndroidApp(job.config.csname.android, arrDevices[i].deviceId);
-  }
-  process.exit(testFailed ? 1 : 0);
-});
-
-
-// remove apps
-for (var i = 0; i < arrDevices.length; i++) {
-  logme("Stopping app on ", arrDevices[i].deviceId);
-  stopAndroidApp(job.config.csname.android, arrDevices[i].deviceId);
-
-  logme("Uninstalling app on ", arrDevices[i].deviceId);
-  uninstallApp(job.config.csname.android, arrDevices[i].deviceId);
 }
 
-var isDeviceBooted = function (device_name, timeout) {
-  var result = false;
-  setTimeout(function () {
-    var cmd = 'adb -s ' + device_name + ' shell getprop sys.boot_completed';
-    var res = sync(cmd);
-    result = res.exitCode === 0 && res.out.indexOf('1') === 0;
-    jxcore.utils.continue();
-  }, timeout);
-  jxcore.utils.pause();
-  return result;
-};
+if (require.main === module) {
+  if (os.platform() !== 'darwin') {
+    console.log('WARNING: WE ONLY SUPPORT MACOS AS A BUILD PLATFORM, USING ANY' +
+      'OTHER PLATFORM IS NOT OFFICIALLY SUPPORTED. WE STILL CHECK A FEW ' +
+      'THINGS BUT YOU ARE REALLY ON YOUR OWN');
+  }
 
-//ensure all devices are up and running
-var devicesReady = true;
-for (var i = 0; i < arrDevices.length; i++) {
-  var bootCheckCount = 0;
-  var bootMaxCheckCount = 10;
-  var bootCheckTimeout = 0;
-  while (bootCheckCount < bootMaxCheckCount && !isDeviceBooted(arrDevices[i].deviceId, bootCheckTimeout)) {
-    bootCheckCount += 1;
-    bootCheckTimeout = 10000;  // wait 10 seconds before next try
-  }
-  if (bootCheckCount === bootMaxCheckCount) {
-    devicesReady = false;
-    break;
-  }
+  runTests()
+    .then((failed) => {
+      logger.info('Finish running Android tests');
+
+      process.exit(failed ? 1 : 0);
+    })
+    .catch((error) => {
+      logger.error(`Failed running Android tests with error: ${error}`);
+
+      process.exit(-1);
+    });
 }
-if (!devicesReady) {
-  logme("\n\nDevices on this node are not ready.\n",
-        "Cancelling the test result on this node.\n");
-  if (job.config.serverScript && job.config.serverScript.length) {
-    jxcore.utils.cmdSync("curl 192.168.1.150:8060/cancel=1");
-  }
-  process.exit(0);
-} else {
-  logme("\nAll devices are ready!\n");
-}
-
-var retry_count=0;
-// deploy apps
-for (var i = 0; i < arrDevices.length; i++) {
-  var isMarshmallow = arrDevices[i].sdkVersion > 22;
-
-  logme("Deploying to " + arrDevices[i].deviceId);
-
-  var res = deployAndroid(builds + "/android_" + nodeId + "_" + job.uqID + ".apk", arrDevices[i].deviceId, job.config.csname.android, isMarshmallow);
-  if (res && retry_count < 2) {
-    retry_count++;
-    i--;
-    continue;
-  }
-  if (res) {
-    logme("\n\nTest on this node has failed but the reason wasn't the test application itself.\n",
-      "Cancelling the test result on this node.\n", res);
-
-    if (job.config.serverScript && job.config.serverScript.length)
-      jxcore.utils.cmdSync("curl 192.168.1.150:8060/cancel=1");
-
-    process.exit(0);
-  }
-  retry_count = 0;
-}
-
-var callback = function (err) {
-  if (err) {
-    logme("Error!", err, "");
-  }
-};
-
-if (job.config.serverScript && job.config.serverScript.length)
-  jxcore.utils.cmdSync("curl 192.168.1.150:8060/droid=" + arrDevices.length);
-
-for (var i = 0; i < arrDevices.length; i++) {
-  if (job.config.instrumentationTestRunner) {
-    runAndroidInstrumentationTests(job.config.csname.android, job.config.instrumentationTestRunner, i);
-  } else {
-    logme("Starting application ThaliTest on " + arrDevices[i].deviceId + "\n");
-    runAndroidApp(job.config.csname.android, arrDevices[i].deviceId, arrDevices[i].deviceName, callback);
-  }
-}
-
-function timeoutKill() {
-  // shut down the test;
-  logme("TIMEOUT REACHED. KILLING the APPS");
-  for (var i = 0; i < arrDevices.length; i++) {
-    var dev = arrDevices[i];
-    if (dev.finished) continue;
-
-    if (!logArray[dev.deviceName]) {
-      logArray[dev.deviceName] = [];
-    }
-    logArray[dev.deviceName].push("TIME-OUT KILL (timeout was " + timeout + "ms)");
-    stopAndroidApp(job.config.csname.android, dev.deviceId);
-    if (dev.child) {
-      dev.child.kill();
-    }
-  }
-  setTimeout(function(){
-    process.emit("SIGTERM");
-  }, 1000);
-}
-
-// set timeout
-var timeout = job.config.timeout ? job.config.timeout * 1000 : 300000;
-var logcatCounter = 0;
-var interTimer = setInterval(function(){
-  if (logcatIndex == arrDevices.length) {
-    clearInterval(interTimer);
-    setTimeout(function () {
-      timeoutKill();
-    }, timeout + 10000);
-  } else {
-    if (logcatCounter > 90) {
-      timeoutKill();
-    }
-  }
-  logcatCounter++;
-}, 1000);

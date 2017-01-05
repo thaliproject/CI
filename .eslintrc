@@ -2,8 +2,8 @@
   "env": {
     "node": true
   },
-  "globals": {
-    "Mobile": true
+  "parserOptions": {
+    "ecmaVersion": 6
   },
   "rules": {
     "no-cond-assign": 2,

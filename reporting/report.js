@@ -1,8 +1,18 @@
+//  Copyright (C) Microsoft. All rights reserved.
+//  Licensed under the MIT license. See LICENSE.txt file in the project root
+//  for full license information.
+//
+
+'use strict';
+
 var db = require('./../db_actions');
-var sync = jxcore.utils.cmdSync;
 var exec = require('child_process').exec;
-var path = require('path');
+var execSync = jxcore.utils.cmdSync;
 var fs = require('fs');
+var path = require('path');
+
+var Logger = require('../logger');
+var logger = new Logger();
 
 var eopts = {
   encoding: 'utf8',
@@ -25,7 +35,7 @@ var push_logs = function() {
 
   var task = log_queue.shift();
 
-  logme("Creating Github Branch for " + task.bn, "red");
+  logger.warn("Creating Github Branch for " + task.bn);
 
   createBranch(task.bn, function (err, res) {
     if (err) {
@@ -34,33 +44,37 @@ var push_logs = function() {
       return;
     }
 
-    if (task.sk !== -1)
+    if (task.sk !== -1) {
       fs.writeFileSync(process.cwd() + '/TestResults/' + task.fn, task.lg);
+    }
 
-    if(fs.existsSync(process.cwd() + "/TMP/" + task.bn + "/")) {
-      sync("mv " + process.cwd() + "/TMP/" + task.bn + "/* " + process.cwd() + '/TestResults/');
-      sync("rm -rf " + process.cwd() + "/TMP/" + task.bn + "/");
+    var tmpDir = process.cwd() + '/TMP/' + task.bn;
+    if (fs.existsSync(tmpDir + '/')) {
+      execSync('mv ' + tmpDir + '/* ' + process.cwd() + '/TestResults/');
+      execSync('rm -rf ' + tmpDir + '/');
     }
 
     exec("cd " + process.cwd()
       + "/reporting;chmod +x ./commit_logs.sh;./commit_logs.sh " + task.bn, eopts,
       function (err, stdout, stderr) {
-        logme("Creating Github Branch for " + task.bn + " was " + (err ? "failed" : "successful"), "blue");
+        logger.info("Creating Github Branch for " + task.bn + " was " + (err ? "failed" : "successful"));
+
         if (err) {
           task.cb(err, stdout + "\n" + stderr);
         } else {
           task.cb(null);
         }
+
         push_logs();
       });
   });
 };
 
-exports.logIntoBranch = function (branch_name, filename, log, cb, skip) {
+exports.logIntoBranch = function (branch_name, filename, log, callback, skip) {
   if(skip && skip !== -1) {
-    sync("mkdir -p " + process.cwd() + "/TMP/" + branch_name + "/");
-    fs.writeFileSync(process.cwd() + '/TMP/' + branch_name + "/" + filename, log);
-    cb(null);
+    execSync('mkdir -p ' + process.cwd() + '/TMP/' + branch_name + '/');
+    fs.writeFileSync(process.cwd() + '/TMP/' + branch_name + '/' + filename, log);
+    callback(null);
     return;
   }
 
