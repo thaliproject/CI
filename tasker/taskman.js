@@ -85,7 +85,7 @@ var runTask = function (job) {
   var delay = 1;
 
   if (job.config.serverScript && job.config.serverScript.length) {
-    delay = 180000;  // just to make sure server scripts are copied and server is started
+    delay = 4000;
     var p = path.join(process.cwd(), "builder/builds/server_" + job.uqID);
 
     if (job.config.serverScript[job.config.serverScript.length-1] != '/')

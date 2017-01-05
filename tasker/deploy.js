@@ -109,36 +109,41 @@ exports.test = function (job, trying, callback_) {
         callback();
       }
     } else {
-      if (job.config.serverScript && job.config.serverScript.length)
+      var deployTimeout = 0;
+      if (job.config.serverScript && job.config.serverScript.length) {
         jxcore.utils.cmdSync("curl 192.168.1.150:8060/nodes=" + nodes.length);
+        deployTimeout = 120000; // ensure the coordination server is up and running
+      }
 
       trying = 0;
-      logme("Deploying on", nodes, "green");
-      deploy(job, nodes, function (err, stdout, stderr) {
-        if (err) {
-          logme(err, stdout, stderr, "red");
+      setTimeout(function () {
+        logme("Deploying on", nodes, "green");
+        deploy(job, nodes, function (err, stdout, stderr) {
+          if (err) {
+            logme(err, stdout, stderr, "red");
 
-          if (err.retry && trying < 2) {
-            tryInter = setTimeout(function () {
-              exports.test(job, trying++, callback);
-            }, 10000);
-            return;
-          } else {
-            if (leaveRecevied) {
-              if (!stdout)
-                stdout = "";
-              stdout += "\nTIMEOUT REACHED!";
+            if (err.retry && trying < 2) {
+              tryInter = setTimeout(function () {
+                exports.test(job, trying++, callback);
+              }, 10000);
+              return;
+            } else {
+              if (leaveRecevied) {
+                if (!stdout)
+                  stdout = "";
+                stdout += "\nTIMEOUT REACHED!";
+              }
+              tester.report(job, "android", err + stdout + stderr, false);
+              callback();
             }
-            tester.report(job, "android", err + stdout + stderr, false);
-            callback();
+            return;
           }
-          return;
-        }
 
-        var emsg = err ? err + "\n\n" + stdout + "\n\n" + stderr : null;
-        tester.report(job, "android", emsg, true);
-        callback();
-      });
+          var emsg = err ? err + "\n\n" + stdout + "\n\n" + stderr : null;
+          tester.report(job, "android", emsg, true);
+          callback();
+        });
+      }, deployTimeout);
     }
   });
 };
