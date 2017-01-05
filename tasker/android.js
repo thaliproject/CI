@@ -397,17 +397,22 @@ var callback = function (err) {
   }
 };
 
-if (job.config.serverScript && job.config.serverScript.length)
+var runTimeout = 0;
+if (job.config.serverScript && job.config.serverScript.length) {
+  runTimeout = 120000; // ensure coordination server is up and running
   jxcore.utils.cmdSync("curl 192.168.1.150:8060/droid=" + arrDevices.length);
-
-for (var i = 0; i < arrDevices.length; i++) {
-  if (job.config.instrumentationTestRunner) {
-    runAndroidInstrumentationTests(job.config.csname.android, job.config.instrumentationTestRunner, i);
-  } else {
-    logme("Starting application ThaliTest on " + arrDevices[i].deviceId + "\n");
-    runAndroidApp(job.config.csname.android, arrDevices[i].deviceId, arrDevices[i].deviceName, callback);
-  }
 }
+
+setTimeout(function () {
+  for (var i = 0; i < arrDevices.length; i++) {
+    if (job.config.instrumentationTestRunner) {
+      runAndroidInstrumentationTests(job.config.csname.android, job.config.instrumentationTestRunner, i);
+    } else {
+      logme("Starting application ThaliTest on " + arrDevices[i].deviceId + "\n");
+      runAndroidApp(job.config.csname.android, arrDevices[i].deviceId, arrDevices[i].deviceName, callback);
+    }
+  }
+}, runTimeout);
 
 function timeoutKill() {
   // shut down the test;
