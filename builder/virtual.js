@@ -9,7 +9,7 @@ var tester = require('../internal/tester');
 
 var eopts = {
   encoding: 'utf8',
-  timeout: 1000 * 60 * 35, // single command timeout - 35 min.
+  timeout: 1000 * 60 * 45, // single command timeout - 45 min.
   maxBuffer: 1e9,
   killSignal: 'SIGTERM'
 };
@@ -359,14 +359,14 @@ exports.cancelIfActive = function (prId) {
 
 var vmTask = function () {
   if (builderBusy) {
-    // a build operation can not take longer than 30 minutes
-    if (Date.now() - lastStartTime > 1800000) {
+    // a build operation can not take longer than 50 minutes
+    if (Date.now() - lastStartTime > 3000000) {
       if (currentBuildCommand) {
         currentBuildCommand.kill(eopts.killSignal);
         return;
       }
       // give additional 5 minutes for build job cleanup
-      if (Date.now() - lastStartTime > 2100000) {
+      if (Date.now() - lastStartTime > 3300000) {
         if (builderReset) {
           return;
         }
