@@ -1,8 +1,13 @@
 var http = require('http');
+var https = require('https');
+var fs = require('fs');
 var greq = require('./hook/git_request');
 var db = require('./db_actions');
 var git = require('./hook/git_actions');
 require('./logger');
+
+var key = fs.readFileSync('key.pem');
+var cert = fs.readFileSync('cert.pem');
 
 // VM builder
 require('./builder/virtual.js');
@@ -48,7 +53,7 @@ db.getGithubUser(function (data) {
 
   git.setLogin(data.username, data.password);
 
-  http.createServer(function (request, response) {
+  var handleRequest = function (request, response) {
     if (request.method == 'POST') {
       getPost(request, response, function () {
         try {
@@ -62,11 +67,19 @@ db.getGithubUser(function (data) {
       });
     } else {
       // TODO locate webUI here
-
       response.writeHead(200, "OK", {'Content-Type': 'text/plain'});
       response.end();
     }
+  };
 
-  }).listen(8080);
+  http.createServer(
+      handleRequest).listen(8080);
   logme("Github WebHook Server Started on 8080", "green");
+
+  https.createServer({
+      key: key,
+      cert: cert
+    }, handleRequest).listen(443);
+
+  logme("Github Secure WebHook Server Started on 8080", "yellow");
 });
