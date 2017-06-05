@@ -78,7 +78,7 @@ var testFailed = false;
 var deployAndroid = function (apk_path, device_name, class_name, isMarshmallow) {
   var grantPermission = '';
   if (isMarshmallow) {
-    grantPermission = '&& adb -s ' + device_name + ' shell pm grant com.test.thalitest android.permission.ACCESS_COARSE_LOCATION';
+    grantPermission = '&& adb -s ' + device_name + ' shell pm grant ' + job.config.csname.android + ' android.permission.ACCESS_COARSE_LOCATION';
     logme("Marshmallow device. Granting ACCESS_COARSE_LOCATION permission.");
   }
 
