@@ -1,7 +1,7 @@
 var GitHubApi = require("github");
 var path = require('path');
 var tester = require('./../internal/tester');
-var virtual = require('./../builder/virtual')
+var virtual = require('./../builder/virtual');
 var reporting = require('../reporting/report');
 
 var github = new GitHubApi({
