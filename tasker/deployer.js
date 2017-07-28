@@ -51,7 +51,7 @@ function COPY_LOGS() {
 
 var reset = fs.readFileSync(__dirname + "/reset_.sh") + "";
 reset = reset.replace("{{PR_ID}}", job.uqID);
-fs.writeFileSync(__dirname + "/reset.sh", reset)
+fs.writeFileSync(__dirname + "/reset.sh", reset);
 
 //cleanup target
 var retry = [];
@@ -121,7 +121,7 @@ function counterExec(index, cmd, cb) {
 
 reset = fs.readFileSync(__dirname + "/run_.sh") + "";
 reset = reset.replace("{{JOB64}}", process.argv[2]);
-fs.writeFileSync(__dirname + "/run.sh", reset)
+fs.writeFileSync(__dirname + "/run.sh", reset);
 
 var counter = job.nodes.length;
 var hasError = false;

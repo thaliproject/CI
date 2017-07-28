@@ -214,7 +214,7 @@ var test_ = function (job, cb) {
       return;
     }
 
-    logme("Deploying iOS test app", "")
+    logme("Deploying iOS test app", "");
     // devices are available under arrDevices -> Array of {name, deviceId}
     deployIOS(job, function (err, failed) {
       cb(err, failed)

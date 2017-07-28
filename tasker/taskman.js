@@ -22,7 +22,7 @@ var taskCounter = 0;
 var iosChild;
 
 function runIos(job, cb) {
-  logme("iOS test task is running", 'yellow')
+  logme("iOS test task is running", 'yellow');
   var job64 = new Buffer(JSON.stringify(job), "").toString("base64");
 
   return exec("cd " + __dirname + "; jx ios.js " + job64, eopts, function (err, stdout, stderr) {

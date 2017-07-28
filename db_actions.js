@@ -2,14 +2,13 @@ var loki = require('lokijs');
 var server = new loki('server.json');
 var local = new loki('config.json');
 var fs = require('fs');
-var virtual = require('./builder/virtual');
 
 exports.nodeCount = 2;
 
 var config, hook, test;
 
 if (!fs.existsSync('config.json')) {
-  console.log("Creating config.json")
+  console.log("Creating config.json");
   local.addCollection('config');
   // local.getCollection('config').insert({name: "GithubUser", username: "obastemur", password: ""})
   local.saveDatabase();
@@ -17,7 +16,7 @@ if (!fs.existsSync('config.json')) {
 
 
 if (!fs.existsSync('server.json')) {
-  console.log("Creating server.json")
+  console.log("Creating server.json");
   server.addCollection('hooks');
   server.addCollection('test');
   server.saveDatabase();
@@ -26,7 +25,7 @@ if (!fs.existsSync('server.json')) {
 exports.getGithubUser = function (cb) {
   local.loadDatabase({}, function () {
     config = local.getCollection('config');
-    var arr = config.find({name: "GithubUser"})
+    var arr = config.find({name: "GithubUser"});
     server.loadDatabase({}, function () {
       hook = server.getCollection('hooks');
       if (!hook) {

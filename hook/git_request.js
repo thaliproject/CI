@@ -46,8 +46,7 @@ exports.OnRequest = function (req, res) {
       repo_name = head.repo.full_name;
     }
 
-    if (!repo_name || repo_name.indexOf('thaliproject/') != 0 &&
-      repo_name.indexOf('obastemur/') != 0) {
+    if (!repo_name || repo_name.indexOf('thaliproject/') != 0) {
       if (pr && pr.state && pr.state != 'open') {
         // nothing to do
       } else {
@@ -68,8 +67,7 @@ exports.OnRequest = function (req, res) {
     var branch = json.repository.default_branch;
     var user = json.sender.login;
 
-    if (repo_name.indexOf('thaliproject/') != 0 &&
-      repo_name.indexOf('obastemur/') != 0) {
+    if (repo_name.indexOf('thaliproject/') != 0) {
       logme("BAD REQUEST from repo", repo_name, "red");
     } else {
       // check if we have the repo on DB
