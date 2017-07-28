@@ -147,6 +147,7 @@ exports.test = function (job, trying, callback_) {
 exports.leave = function () {
   leaveRecevied = true;
   sync("cd "+__dirname+";./stop_nodes.sh");
+  logme("Leave received, stopping nodes.", "red");
   if (deployerChild) {
     deployerChild.kill();
   }

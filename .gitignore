@@ -13,3 +13,9 @@ builder/builds/
 tasker/results/
 
 last_request.json
+
+*.pem
+
+*.csr
+
+*.bak

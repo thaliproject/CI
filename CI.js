@@ -1,4 +1,6 @@
 var http = require('http');
+var https = require('https');
+var fs = require('fs');
 var greq = require('./hook/git_request');
 var db = require('./db_actions');
 var git = require('./hook/git_actions');
@@ -49,6 +51,7 @@ db.getGithubUser(function (data) {
   git.setLogin(data.username, data.password);
 
   http.createServer(function (request, response) {
+    logme("Github's payload received", "green");
     if (request.method == 'POST') {
       getPost(request, response, function () {
         try {
@@ -69,4 +72,33 @@ db.getGithubUser(function (data) {
 
   }).listen(8080);
   logme("Github WebHook Server Started on 8080", "green");
+
+  var key = fs.readFileSync('server-key.pem');
+  var cert = fs.readFileSync('server-cert.pem');
+
+  https.createServer({
+      key: key,
+      cert: cert
+    }, function (request, response) {
+    logme("Github's payload received", "yellow");
+    if (request.method == 'POST') {
+      getPost(request, response, function () {
+        try {
+          greq.OnRequest(request, response);
+        } catch (e) {
+          // TODO log the things went bad
+          logme("Error On Request: ", e, "red");
+        }
+        response.writeHead(200, "OK", {'Content-Type': 'text/plain'});
+        response.end();
+      });
+    } else {
+      // TODO locate webUI here
+
+      response.writeHead(200, "OK", {'Content-Type': 'text/plain'});
+      response.end();
+    }
+
+  }).listen(8081);
+  logme("Github Secure WebHook Server Started on 8081", "yellow");
 });

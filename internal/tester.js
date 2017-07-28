@@ -142,7 +142,8 @@ exports.validateConfig = function (user, repo, json) {
 // opts -> prId:hook_id, ...
 
 exports.createJob = function (user, repo, branch, json, opts) {
-  if (user != "thaliproject" && user != "obastemur") {
+  logme("Create job:",  user, repo, branch, "green");
+  if (user != "thaliproject") {
     logme("Unkown repo:", user + "/" + repo, "(discarding job)", "red");
   } else {
     // see if we have the hook for the user/repo

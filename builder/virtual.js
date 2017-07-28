@@ -24,6 +24,7 @@ var vmChild = null;
 var currentBuildCommand = null;
 
 var stopVM = function (cb) {
+  logme("Stopping VM", "green");
   var vm = '/Applications/VMware\\ Fusion.app/Contents/Library/vmrun';
   exec(vm + ' stop ~/Desktop/Virtual\\ Machines/OSXDEV.vmwarevm/OSXDEV.vmx', eopts, function (err, out, stderr) {
     if (err)
@@ -157,7 +158,7 @@ var runBuild = function (cmds, job, index, cb) {
 
   if (!cmd.sync)
     updateScripts(job, cmd);
-
+  
   currentBuildCommand = exec("cd " + __dirname + ";" + cmd.cmd, eopts, function (err, stdout, stderr) {
     currentBuildCommand = null;
     if (cancelJobId == job.prId)
@@ -307,12 +308,14 @@ var buildJob = function (job) {
 
       // move builds
       var prPath = "builds/" + job.uqID;
+      logme("Moving builds" + prPath, "green");
       exec("cd " + __dirname + "; rm -rf " + prPath + "; mkdir -p " + prPath + "; mv build_ios/ " + prPath + "; mv build_android/ " + prPath, eopts, function (err, stdout, stderr) {
         if (err) {
           logme("something happened and couldn't move the builds?", err, stdout, stderr, "red");
           jobErrorReportAndRemove(job, err, stdout, stderr);
         } else {
           // save job
+          logme("Saving job.", "green");
           job.compiled = true;
           db.updateJob(job);
         }
@@ -327,6 +330,7 @@ var buildJob = function (job) {
         builderReset = true;
 
         stopVM(function () {
+          logme("VM stopped", "green");
           builderBusy = false;
           builderJob = null;
           builderReset = false;

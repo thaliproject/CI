@@ -78,7 +78,7 @@ var testFailed = false;
 var deployAndroid = function (apk_path, device_name, class_name, isMarshmallow) {
   var grantPermission = '';
   if (isMarshmallow) {
-    grantPermission = '&& adb -s ' + device_name + ' shell pm grant com.test.thalitest android.permission.ACCESS_COARSE_LOCATION';
+    grantPermission = '&& adb -s ' + device_name + ' shell pm grant ' + job.config.csname.android + ' android.permission.ACCESS_COARSE_LOCATION';
     logme("Marshmallow device. Granting ACCESS_COARSE_LOCATION permission.");
   }
 
@@ -256,6 +256,7 @@ var runAndroidInstrumentationTests = function (class_name, runner, deviceIndex) 
 };
 
 var uninstallApp = function (class_name, device_name) {
+  logme("Uninstalling App:" + class_name + " " + device_name, "green");
   var cmd = 'sleep 1;adb -s "' + device_name + '" uninstall ' + class_name;
   var res = sync(cmd);
   if (res.exitCode != 0) {
@@ -267,6 +268,7 @@ var uninstallApp = function (class_name, device_name) {
 };
 
 var stopAndroidApp = function (class_name, device_name, cb) {
+  logme("Stopping App:" + class_name + " " + device_name, "green");
   var cmd = 'adb -s "'+device_name+'" shell pm uninstall '+class_name
     + ';adb -s "' + device_name + '" reboot';
 
@@ -329,9 +331,11 @@ for (var i = 0; i < arrDevices.length; i++) {
 }
 
 var isDeviceBooted = function (device_name, timeout) {
+  logme("is Device booted", device_name, timeout, "green");
   var result = false;
   setTimeout(function () {
     var cmd = 'adb -s ' + device_name + ' shell getprop sys.boot_completed';
+    logme("Checking: ", cmd, "green");
     var res = sync(cmd);
     result = res.exitCode === 0 && res.out.indexOf('1') === 0;
     jxcore.utils.continue();

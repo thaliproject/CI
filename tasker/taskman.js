@@ -193,7 +193,7 @@ var testTask = function () {
   taskerBusy = true;
   activeJob = job;
 
-  var delay = 45000; // phones were rebooting
+  var delay = 60000; // phones were rebooting
   // randomly also restart the raspberries
   sync("cd " + __dirname + ";./clean_nodes.sh");
   lastStartTime = Date.now() + delay;

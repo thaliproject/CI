@@ -85,6 +85,7 @@ for (var i = 0; i < job.nodes.length; i++) {
 
 //copy android.js script
 for (var i = 0; i < job.nodes.length; i++) {
+  console.log("copying android script" + job.nodes[i].ip);
   var res = sync("cd " + __dirname + ";scp android.js pi@" + job.nodes[i].ip + ":~/test/tasker/");
   if (res.exitCode != 0) {
     console.error("copy android.js:", res.out);

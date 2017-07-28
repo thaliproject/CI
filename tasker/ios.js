@@ -22,7 +22,7 @@ var builds = path.join(__dirname, "../builder/builds");
 var arrDevices = [];
 // out: [ {name, deviceId} ]
 var getIOSDevices = function (cb) {
-  exec("ios-deploy --detect --timeout 1", eopts, function (err, stdout, stderr) {
+  exec("ios-deploy --detect", eopts, function (err, stdout, stderr) {
     if (err) {
       logme("Error: ios-deploy", err, stdout, stderr, "");
       cb(err);
@@ -85,7 +85,7 @@ var uninstallApp = function (job, cb) {
   }
 
   for (var i = 0; i < arrDevices.length; i++) {
-    var cmd = "ios-deploy -t 0 -9 -1 " + job.config.csname.ios + " -i " + arrDevices[i].deviceId;
+    var cmd = "ios-deploy -9 -1 " + job.config.csname.ios + " -i " + arrDevices[i].deviceId;
     call_log.push(cmd);
     exec(cmd, eopts, callback);
   }
@@ -107,6 +107,7 @@ var grabLLDB = function (index, loc, deviceId, cb) {
   var _this = this;
 
   this.run = function () {
+    logme('ios.run:', _this.deviceId, _this.location);
     var child = spawn('ios-deploy', ['-i', _this.deviceId, "-b", _this.location, "-I"], eopts);
     arrDevices[_this.index].child = child;
 
@@ -127,7 +128,7 @@ var grabLLDB = function (index, loc, deviceId, cb) {
           _this.child.failed = true;
 
         _this.killing = true;
-        exec("ios-deploy -t 0 -9 -1 " + activeJob.config.csname.ios + " -i " + _this.deviceId, eopts, function (err, stdout, stderr) {
+        exec("ios-deploy -9 -1 " + activeJob.config.csname.ios + " -i " + _this.deviceId, eopts, function (err, stdout, stderr) {
           _this.child.kill();
         });
       }
